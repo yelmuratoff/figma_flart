@@ -1,6 +1,6 @@
 <p align="center"><img src="./assets/icon.png" align="center" alt="Flart logo" width="128" height="128"></p>
   
-<h1 align="center">Flart: Flutter/Dart generator</h1>
+<h1 align="center">Flart: Flutter / Dart generator</h1>
 
 <div align="center">
 <a href="https://www.figma.com/community/plugin/1414241573403591199/Flart" align="center"><img src="assets/install_button.png" align="center" alt="Install Plugin"></a>
