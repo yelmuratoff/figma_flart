@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Generate Dart Code</title>
+  <style>
+    body {
+      font-family: Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #F5F5F5;
+    }
+
+    h2 {
+      text-align: center;
+      color: #6200EE;
+      margin-top: 24px;
+    }
+
+    fieldset {
+      border: 0;
+      padding: 16px;
+      background-color: #FFFFFF;
+      margin: 16px auto;
+      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    legend {
+      font-weight: bold;
+      color: #6200EE;
+    }
+
+    label {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 8px;
+      accent-color: #6200EE;
+    }
+
+    button {
+      background-color: #6200EE;
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 8px;
+      font-size: 16px;
+      display: inline-block;
+    }
+
+    button:hover {
+      background-color: #3700B3;
+    }
+
+    #codeBlock {
+      background-color: #F1F1F1;
+      height: 335px;
+      overflow: auto;
+      border: 2px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px auto;
+      max-width: 400px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      font-family: monospace;
+    }
+
+    #buttonGroup {
+      text-align: center;
+      margin-top: 16px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <h2>Flutter Style Generator</h2>
+
+  <fieldset>
+    <legend>TextStyle Options</legend>
+    <label>
+      <input type="checkbox" id="useThemeExtensions">
+      Use Theme Extensions
+    </label>
+    <label>
+      <input type="checkbox" id="includeFontName">
+      Include font name
+    </label>
+  </fieldset>
+
+  <div id="buttonGroup">
+    <button id="generateTextStyles">Generate TextStyles</button>
+    <button id="generateColors">Generate Colors</button>
+    <button id="generateEffects">Generate Effects</button>
+  </div>
+
+  <pre id="codeBlock">No code generated yet.</pre>
+
+  <script>
+    // Logic for button click and checkbox state
+    document.getElementById('generateTextStyles').onclick = () => {
+      const useThemeExtensions = document.getElementById('useThemeExtensions').checked;
+      const includeFontName = document.getElementById('includeFontName').checked;
+      window.parent.postMessage({ pluginMessage: { type: 'generate-textstyles', useThemeExtensions: useThemeExtensions, includeFontName: includeFontName } }, '*');
+    };
+
+    document.getElementById('generateColors').onclick = () => {
+      window.parent.postMessage({ pluginMessage: { type: 'generate-colors' } }, '*');
+    };
+
+    document.getElementById('generateEffects').onclick = () => {
+      window.parent.postMessage({ pluginMessage: { type: 'generate-effects' } }, '*');
+    };
+
+    window.onmessage = (event) => {
+      if (event.data.pluginMessage.type === 'dart-code') {
+        document.getElementById('codeBlock').textContent = event.data.pluginMessage.code;
+      }
+    };
+
+  </script>
+</body>
+
+</html>
