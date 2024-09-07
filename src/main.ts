@@ -18,5 +18,11 @@ if (figma.editorType === 'figma' || figma.editorType === 'dev') {
             let dartCode = await generateEffectStyles();
             figma.ui.postMessage({ type: 'dart-code', code: dartCode });
         }
+
+if (msg.type === 'generate-variables') {
+    let dartCode = await generateVariables();
+    figma.ui.postMessage({ type: 'dart-code', code: dartCode });
+}
+
     };
 }

@@ -249,4 +249,110 @@ function generateColorStyleDartCode(styleName: string, r: number, g: number, b: 
     return code;
 }
 
+async function generateVariables() {
+  // Получаем коллекции переменных
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  collections.forEach((collection) => {
+      console.log('-------------------');
+      console.log(collection.name);
+      console.log(collection.modes);
+      console.log(collection.id);
+      console.log(collection.variableIds);
+
+      collection.modes.forEach(async (mode) => {
+            console.log('mode', mode.name);
+            console.log('mode', mode.modeId);
+
+   
+            collection.variableIds.forEach(async (variableId) => {
+               const variable = await figma.variables.getVariableByIdAsync(variableId);
+               
+                  console.log('variable', variable?.name, variable?.valuesByMode[mode.modeId]);
+               
+      });
+   });
+
+      // collection.variableIds.forEach(async (variableId) => {
+      //       const variable = await figma.variables.getVariableByIdAsync(variableId);
+      //       console.log('variable', variable?.name, variable?.valuesByMode[]);
+      // });
+  });
+
+//   // Генерация классов для всех коллекций
+//   let themeCode = '';
+//   for (const collection of collections) {
+//     themeCode += await generateThemeClass(collection);
+//   }
+
+//   console.log('themeCode', themeCode);
+
+  // Получаем все переменные для размеров и других параметров
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+
+//   const sizesVariables = allVariables.filter(v => v.resolvedType === 'FLOAT');
+//   const sizesCode = generateSizesClass('Sizes', sizesVariables);
+
+  // Собираем итоговый Dart код
+  const result = `class AppVariables {
+      ${collections.map(col => `${convertToCamelCase(col.name)} = ${col.name}();`).join('\n')}
+}`;
+
+   return result;
+}
+
+// Генерация классов для тем, основываясь на модах коллекции
+async function generateThemeClass(collection: any) {
+  let code = `class ${collection.name} {\n`;
+
+  for (const mode of collection.modes) {
+    code += `  // ${mode.name} Mode\n`;
+    for (const variableId of mode.variableIds) {
+      const variable = await figma.variables.getVariableByIdAsync(variableId);
+      if (variable) {
+        const varName = convertToCamelCase(variable.name);
+        code += `  static const ${varName} = ${getDartValue(variable, mode)};\n`;
+      }
+    }
+  }
+
+  code += `}\n`;
+  return code;
+}
+
+// Генерация класса для размеров (например, radius, gap)
+function generateSizesClass(className: string, variables: any[]) {
+  let code = `class ${className} {\n`;
+
+  variables.forEach(variable => {
+    const varName = convertToCamelCase(variable.name);
+    code += `  static const double ${varName} = ${variable.values[0]};\n`;
+  });
+
+  code += `}`;
+  return code;
+}
+
+// Конвертация имени переменной в camelCase
+function convertToCamelCase(name: string): string {
+  return name.replace(/\/(.)/g, (_, letter) => letter.toUpperCase());
+}
+
+// Получение значения переменной для Dart (например, Color или число)
+function getDartValue(variable: any, mode: any): string {
+  const valueForMode = variable.values.find((v: any) => v.modeId === mode.modeId);
+  if (variable.resolvedType === 'COLOR' && valueForMode) {
+    const color = valueForMode;
+    return `Color(0x${toHex(color.r)}${toHex(color.g)}${toHex(color.b)})`;
+  } else if (variable.resolvedType === 'FLOAT' && valueForMode) {
+    return valueForMode.toString();
+  }
+  return 'null';
+}
+
+// Помощник для конвертации цвета в Hex формат
+function toHex(value: number): string {
+  const hex = Math.round(value * 255).toString(16);
+  return hex.length === 1 ? `0${hex}` : hex;
+}
 

@@ -28,23 +28,6 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
-    legend {
-      font-weight: bold;
-      color: #41D0FD;
-    }
-
-    label {
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    input[type="checkbox"] {
-      margin-right: 8px;
-      accent-color: #41D0FD;
-    }
-
     button {
       background-color: #41D0FD;
       color: white;
@@ -97,20 +80,22 @@
     </label>
   </fieldset>
 
+  <!-- New Button Group for Sizes, Gaps, Border Radiuses, and Tokens -->
   <div id="buttonGroup">
     <button id="generateTextStyles">Generate TextStyles</button>
     <button id="generateColors">Generate Colors</button>
     <button id="generateEffects">Generate Effects</button>
+    <button id="generateVariables">Generate variables</button>
   </div>
 
   <pre id="codeBlock">No code generated yet.</pre>
 
   <script>
-    // Logic for button click and checkbox state
+    // Button click handlers for generating code
     document.getElementById('generateTextStyles').onclick = () => {
       const useThemeExtensions = document.getElementById('useThemeExtensions').checked;
       const includeFontName = document.getElementById('includeFontName').checked;
-      window.parent.postMessage({ pluginMessage: { type: 'generate-textstyles', useThemeExtensions: useThemeExtensions, includeFontName: includeFontName } }, '*');
+      window.parent.postMessage({ pluginMessage: { type: 'generate-textstyles', useThemeExtensions, includeFontName } }, '*');
     };
 
     document.getElementById('generateColors').onclick = () => {
@@ -121,12 +106,16 @@
       window.parent.postMessage({ pluginMessage: { type: 'generate-effects' } }, '*');
     };
 
+    document.getElementById('generateVariables').onclick = () => {
+      window.parent.postMessage({ pluginMessage: { type: 'generate-variables' } }, '*');
+    };
+
+    // Display generated Dart code
     window.onmessage = (event) => {
       if (event.data.pluginMessage.type === 'dart-code') {
         document.getElementById('codeBlock').textContent = event.data.pluginMessage.code;
       }
     };
-
   </script>
 </body>
 

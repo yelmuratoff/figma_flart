@@ -77,9 +77,7 @@ function formatStyleName(name: string, index: number): string {
     return words.map((word, index) => index === 0 ? word.toLowerCase() : capitalizeFirstLetter(word)).join('');
 }
 
-function toHex(channel: number): string {
-    return padStart(Math.floor(channel * 255).toString(16), 2, '0');
-}
+
 
 function padStart(str: string, maxLength: number, fillString: string = ' '): string {
     if (str.length >= maxLength) {
