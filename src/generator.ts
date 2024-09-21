@@ -109,10 +109,6 @@ function padStart(
   return Array(maxLength - str.length + 1).join(fillString) + str;
 }
 
-function capitalizeFirstLetter(string: string) {
-  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
-}
-
 /// <---------------------- GENERATOR ---------------------->
 
 async function generateTextStyles(
@@ -407,14 +403,124 @@ function generateColorStyleDartCode(
 }
 
 async function generateVariables(useThemeExtensions: boolean): Promise<string> {
-  // Получаем коллекции переменных
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let dartCode = "import 'package:flutter/material.dart';\n";
+  dartCode += "import 'package:equatable/equatable.dart';\n\n";
 
-  let dartClasses = "import 'dart:ui';\n\n";
-
+  // Генерация с использованием ThemeExtension
   for (const collection of collections) {
+    const className = formatClassName(collection.name);
+
     if (useThemeExtensions) {
-      return "Theme extensions are not supported for variables";
+      // Интерфейс для ThemeExtension
+      dartCode += `abstract interface class I${className} extends ThemeExtension<I${className}> {\n`;
+
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `  abstract final Color ${variableName};\n`;
+          }
+        }
+      }
+
+      dartCode += "}\n\n";
+
+      // Класс с конкретной реализацией
+      dartCode += `final class ${className} extends Equatable implements I${className} {\n`;
+      dartCode += `  const ${className}({\n`;
+
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `    required this.${variableName},\n`;
+          }
+        }
+      }
+
+      dartCode += "  });\n\n";
+
+      // Поля для переменных
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `  @override\n  final Color ${variableName};\n`;
+          }
+        }
+      }
+
+      // copyWith метод
+      dartCode += `\n  ${className} copyWith({\n`;
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `    Color? ${variableName},\n`;
+          }
+        }
+      }
+      dartCode += `  }) => ${className}(\n`;
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `    ${variableName}: ${variableName} ?? this.${variableName},\n`;
+          }
+        }
+      }
+      dartCode += "  );\n\n";
+
+      // lerp метод
+      dartCode += `\n  @override\n  ${className} lerp(I${className}? other, double t) {\n`;
+      dartCode += "    if (other == null) return this;\n";
+      dartCode += `    return ${className}(\n`;
+
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `      ${variableName}: Color.lerp(${variableName}, other.${variableName}, t)!,\n`;
+          }
+        }
+      }
+      dartCode += "    );\n  }\n";
+
+      // props для Equatable
+      dartCode += `\n  @override\n  List<Object?> get props => [\n`;
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
+          );
+          if (variable?.resolvedType === "COLOR") {
+            const variableName = formatVariableName(mode.name, variable.name);
+            dartCode += `    ${variableName},\n`;
+          }
+        }
+      }
+      dartCode += "  ];\n";
+
+      dartCode += "}\n\n";
     } else {
       let classContent = `final class ${capitalizeFirstLetter(
         collection.name
@@ -473,18 +579,36 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
       }
 
       classContent += `}\n\n`;
-      dartClasses += classContent;
+      dartCode += classContent;
     }
   }
 
-  return dartClasses;
+  return dartCode;
 }
 
-// Форматирование переменной в camelCase
+// Функции вспомогательные
 function formatVariableName(mode: string, name: string): string {
-  var result = mode.toLowerCase() + capitalize(name);
-  return result.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+  return `${mode.toLowerCase()}${capitalize(
+    name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
+  )}`;
 }
+
+// Функция для форматирования имени класса
+function formatClassName(name: string): string {
+  return name
+    .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
+    .replace(/^(.)/, (chr) => chr.toUpperCase());
+}
+
+function capitalizeFirstLetter(string: string): string {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// // Форматирование переменной в camelCase
+// function formatVariableName(mode: string, name: string): string {
+//   var result = mode.toLowerCase() + capitalize(name);
+//   return result.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+// }
 
 // Конвертация первой буквы в верхний регистр
 function capitalize(s: string): string {
