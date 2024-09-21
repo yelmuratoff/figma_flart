@@ -24,7 +24,7 @@ Automating the conversion process eliminates these issues, making the design-to-
 
 ### TODO
 
-- [ ] Tokens/Variables
+- [x] Tokens/Variables
 - [x] Text decoration
 - [x] Letter spacing
 - [x] Line height.
