@@ -138,8 +138,10 @@
       };
 
       document.getElementById("generateVariables").onclick = () => {
+        const useThemeExtensions =
+          document.getElementById("useThemeExtensions").checked;
         window.parent.postMessage(
-          { pluginMessage: { type: "generate-variables" } },
+          { pluginMessage: { type: "generate-variables", useThemeExtensions } },
           "*"
         );
       };

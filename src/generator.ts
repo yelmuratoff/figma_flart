@@ -406,30 +406,56 @@ function generateColorStyleDartCode(
   return code;
 }
 
-async function generateVariables() {
+async function generateVariables(useThemeExtensions: boolean): Promise<string> {
   // Получаем коллекции переменных
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
 
   let dartClasses = "import 'dart:ui';\n\n";
 
   for (const collection of collections) {
-    let classContent = `final class ${capitalizeFirstLetter(
-      collection.name
-    )} {\n  const ${capitalizeFirstLetter(collection.name)}._();\n\n`;
+    if (useThemeExtensions) {
+      return "Theme extensions are not supported for variables";
+    } else {
+      let classContent = `final class ${capitalizeFirstLetter(
+        collection.name
+      )} {\n  const ${capitalizeFirstLetter(collection.name)}._();\n\n`;
 
-    for (const mode of collection.modes) {
-      for (const variableId of collection.variableIds) {
-        const variable = await figma.variables.getVariableByIdAsync(variableId);
-        const value = variable?.valuesByMode[mode.modeId];
-
-        if (typeof value === "object" && value !== null && "type" in value) {
-          const aliasVariable = await figma.variables.getVariableByIdAsync(
-            (value as VariableAlias).id
+      for (const mode of collection.modes) {
+        for (const variableId of collection.variableIds) {
+          const variable = await figma.variables.getVariableByIdAsync(
+            variableId
           );
-          const aliasValue = aliasVariable?.valuesByMode["1:0"];
+          const value = variable?.valuesByMode[mode.modeId];
 
-          if (aliasVariable?.resolvedType === "COLOR") {
-            const asColor = aliasValue as RGBA;
+          if (typeof value === "object" && value !== null && "type" in value) {
+            const aliasVariable = await figma.variables.getVariableByIdAsync(
+              (value as VariableAlias).id
+            );
+            const aliasValue = aliasVariable?.valuesByMode["1:0"];
+
+            if (aliasVariable?.resolvedType === "COLOR") {
+              const asColor = aliasValue as RGBA;
+              const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
+                asColor.r
+              )}${toHex(asColor.g)}${toHex(asColor.b)})`;
+              classContent += `  static const Color ${formatVariableName(
+                mode.name,
+                variable?.name ?? "null"
+              )} = ${colorCode};\n`;
+            } else {
+              classContent += `  static const dynamic ${formatVariableName(
+                mode.name,
+                variable?.name ?? "null"
+              )} = ${aliasValue};\n`;
+            }
+          } else if (
+            typeof value === "object" &&
+            value !== null &&
+            "r" in value &&
+            "g" in value &&
+            "b" in value
+          ) {
+            const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
             const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
               asColor.r
             )}${toHex(asColor.g)}${toHex(asColor.b)})`;
@@ -441,34 +467,14 @@ async function generateVariables() {
             classContent += `  static const dynamic ${formatVariableName(
               mode.name,
               variable?.name ?? "null"
-            )} = ${aliasValue};\n`;
+            )} = ${value};\n`;
           }
-        } else if (
-          typeof value === "object" &&
-          value !== null &&
-          "r" in value &&
-          "g" in value &&
-          "b" in value
-        ) {
-          const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
-          const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
-            asColor.r
-          )}${toHex(asColor.g)}${toHex(asColor.b)})`;
-          classContent += `  static const Color ${formatVariableName(
-            mode.name,
-            variable?.name ?? "null"
-          )} = ${colorCode};\n`;
-        } else {
-          classContent += `  static const dynamic ${formatVariableName(
-            mode.name,
-            variable?.name ?? "null"
-          )} = ${value};\n`;
         }
       }
-    }
 
-    classContent += `}\n\n`;
-    dartClasses += classContent;
+      classContent += `}\n\n`;
+      dartClasses += classContent;
+    }
   }
 
   return dartClasses;

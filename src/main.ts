@@ -23,7 +23,8 @@ if (figma.editorType === "figma" || figma.editorType === "dev") {
     }
 
     if (msg.type === "generate-variables") {
-      let dartCode = await generateVariables();
+      const useThemeExtensions = msg.useThemeExtensions;
+      let dartCode = await generateVariables(useThemeExtensions);
       figma.ui.postMessage({ type: "dart-code", code: dartCode });
     }
   };
