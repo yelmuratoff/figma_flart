@@ -3,11 +3,10 @@
 <h1 align="center">Flart: Flutter / Dart generator</h1>
 
 <div align="center">
-<a href="https://www.figma.com/community/plugin/1414241573403591199/Flart" align="center"><img src="assets/install_button.png" align="center" alt="Install Plugin"></a>
+<a href="https://www.figma.com/community/plugin/1419440139622021656/Flart" align="center"><img src="assets/install_button.png" align="center" alt="Install Plugin"></a>
 </div>
 
 <br />
-
 
 ## Problem
 
