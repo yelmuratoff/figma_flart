@@ -410,7 +410,7 @@ async function generateVariables() {
   // Получаем коллекции переменных
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
 
-  let dartClasses = "";
+  let dartClasses = "import 'dart:ui';\n\n";
 
   for (const collection of collections) {
     let classContent = `final class ${capitalizeFirstLetter(
@@ -434,10 +434,12 @@ async function generateVariables() {
               asColor.r
             )}${toHex(asColor.g)}${toHex(asColor.b)})`;
             classContent += `  static const Color ${formatVariableName(
+              mode.name,
               variable?.name ?? "null"
             )} = ${colorCode};\n`;
           } else {
             classContent += `  static const dynamic ${formatVariableName(
+              mode.name,
               variable?.name ?? "null"
             )} = ${aliasValue};\n`;
           }
@@ -453,10 +455,12 @@ async function generateVariables() {
             asColor.r
           )}${toHex(asColor.g)}${toHex(asColor.b)})`;
           classContent += `  static const Color ${formatVariableName(
+            mode.name,
             variable?.name ?? "null"
           )} = ${colorCode};\n`;
         } else {
           classContent += `  static const dynamic ${formatVariableName(
+            mode.name,
             variable?.name ?? "null"
           )} = ${value};\n`;
         }
@@ -471,8 +475,14 @@ async function generateVariables() {
 }
 
 // Форматирование переменной в camelCase
-function formatVariableName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+function formatVariableName(mode: string, name: string): string {
+  var result = mode.toLowerCase() + capitalize(name);
+  return result.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase());
+}
+
+// Конвертация первой буквы в верхний регистр
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // Конвертация имени переменной в camelCase
