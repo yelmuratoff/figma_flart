@@ -404,86 +404,90 @@ function generateColorStyleDartCode(
 
 async function generateVariables(useThemeExtensions: boolean): Promise<string> {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  let dartCode = "import 'package:flutter/material.dart';\n";
-  dartCode += "import 'package:equatable/equatable.dart';\n\n";
+  let dartCode = "import 'dart:ui';\n";
+  dartCode += "import 'package:equatable/equatable.dart';\n";
+  dartCode += "import 'package:flutter/material.dart';\n\n";
 
-  // Генерация с использованием ThemeExtension
+  // Проходим по каждой коллекции переменных
   for (const collection of collections) {
     const className = formatClassName(collection.name);
+    const hasVariables = collection.variableIds.length > 0;
 
-    if (useThemeExtensions) {
+    if (useThemeExtensions && hasVariables) {
       // Интерфейс для ThemeExtension
       dartCode += `abstract interface class I${className} extends ThemeExtension<I${className}> {\n`;
 
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `  abstract final Color ${variableName};\n`;
-          }
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        const variableName = formatVariableName(variable?.name ?? "");
+
+        if (variable?.resolvedType === "COLOR") {
+          dartCode += `  abstract final Color ${variableName};\n`;
+        } else if (variable?.resolvedType === "FLOAT") {
+          dartCode += `  abstract final double ${variableName};\n`;
+        } else {
+          dartCode += `  abstract final dynamic ${variableName};\n`; // Используем dynamic для других типов
         }
       }
-
       dartCode += "}\n\n";
 
-      // Класс с конкретной реализацией
+      // Класс Colors с реализацией
       dartCode += `final class ${className} extends Equatable implements I${className} {\n`;
       dartCode += `  const ${className}({\n`;
 
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `    required this.${variableName},\n`;
-          }
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        if (variable?.resolvedType === "COLOR") {
+          dartCode += `    required this.${variableName},\n`;
+        } else if (variable?.resolvedType === "FLOAT") {
+          dartCode += `    required this.${variableName},\n`;
+        } else {
+          dartCode += `    required this.${variableName},\n`; // Dynamic переменные
         }
       }
 
       dartCode += "  });\n\n";
 
       // Поля для переменных
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `  @override\n  final Color ${variableName};\n`;
-          }
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        if (variable?.resolvedType === "COLOR") {
+          dartCode += `  @override\n  final Color ${variableName};\n`;
+        } else if (variable?.resolvedType === "FLOAT") {
+          dartCode += `  @override\n  final double ${variableName};\n`;
+        } else {
+          dartCode += `  @override\n  final dynamic ${variableName};\n`; // Dynamic поля
         }
       }
 
       // copyWith метод
-      dartCode += `\n  ${className} copyWith({\n`;
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `    Color? ${variableName},\n`;
-          }
+      dartCode += `\n  @override\n ${className} copyWith({\n`;
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        if (variable?.resolvedType === "COLOR") {
+          dartCode += `    Color? ${variableName},\n`;
+        } else if (variable?.resolvedType === "FLOAT") {
+          dartCode += `    double? ${variableName},\n`;
+        } else {
+          dartCode += `    dynamic? ${variableName},\n`; // Dynamic для copyWith
         }
       }
       dartCode += `  }) => ${className}(\n`;
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `    ${variableName}: ${variableName} ?? this.${variableName},\n`;
-          }
-        }
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        dartCode += `    ${variableName}: ${variableName} ?? this.${variableName},\n`;
       }
       dartCode += "  );\n\n";
 
@@ -492,39 +496,85 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
       dartCode += "    if (other == null) return this;\n";
       dartCode += `    return ${className}(\n`;
 
-      for (const mode of collection.modes) {
-        for (const variableId of collection.variableIds) {
-          const variable = await figma.variables.getVariableByIdAsync(
-            variableId
-          );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `      ${variableName}: Color.lerp(${variableName}, other.${variableName}, t)!,\n`;
-          }
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        if (variable?.resolvedType === "COLOR") {
+          dartCode += `      ${variableName}: Color.lerp(${variableName}, other.${variableName}, t)!,\n`;
+        } else if (variable?.resolvedType === "FLOAT") {
+          dartCode += `      ${variableName}: lerpDouble(${variableName}, other.${variableName}, t)!,\n`;
+        } else {
+          dartCode += `      ${variableName}: other.${variableName} ?? this.${variableName},\n`; // Dynamic для lerp
         }
       }
       dartCode += "    );\n  }\n";
 
       // props для Equatable
       dartCode += `\n  @override\n  List<Object?> get props => [\n`;
+      for (const variableId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(variableId);
+        if (!variable) continue;
+        const variableName = formatVariableName(variable.name);
+
+        dartCode += `    ${variableName},\n`;
+      }
+      dartCode += "  ];\n";
+
+      // Метод type
+      dartCode += `  @override\n  Object get type => runtimeType;\n\n`;
+
+      // Генерация значений для разных модов с учетом алиасов
       for (const mode of collection.modes) {
+        dartCode += `  static I${className} get get${convertToCamelCase(
+          mode.name
+        )}${className} => const ${className}(\n`;
+
         for (const variableId of collection.variableIds) {
           const variable = await figma.variables.getVariableByIdAsync(
             variableId
           );
-          if (variable?.resolvedType === "COLOR") {
-            const variableName = formatVariableName(mode.name, variable.name);
-            dartCode += `    ${variableName},\n`;
+          const value = variable?.valuesByMode[mode.modeId];
+          const variableName = formatVariableName(variable?.name ?? "");
+
+          if (typeof value === "object" && value !== null && "type" in value) {
+            const aliasVariable = await figma.variables.getVariableByIdAsync(
+              (value as VariableAlias).id
+            );
+            const aliasValue = aliasVariable?.valuesByMode["1:0"];
+
+            if (aliasVariable?.resolvedType === "COLOR") {
+              const asColor = aliasValue as RGBA;
+              const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
+                asColor.r
+              )}${toHex(asColor.g)}${toHex(asColor.b)})`;
+              dartCode += `    ${variableName}: ${colorCode},\n`;
+            } else {
+              dartCode += `    ${variableName}: ${aliasValue},\n`;
+            }
+          } else if (
+            typeof value === "object" &&
+            value !== null &&
+            "r" in value
+          ) {
+            const asColor = value as RGBA;
+            const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
+              asColor.r
+            )}${toHex(asColor.g)}${toHex(asColor.b)})`;
+            dartCode += `    ${variableName}: ${colorCode},\n`;
+          } else {
+            dartCode += `    ${variableName}: ${value},\n`;
           }
         }
+        dartCode += ");\n\n";
       }
-      dartCode += "  ];\n";
 
       dartCode += "}\n\n";
     } else {
-      let classContent = `final class ${capitalizeFirstLetter(
+      let classContent = `final class App${capitalizeFirstLetter(
         collection.name
-      )} {\n  const ${capitalizeFirstLetter(collection.name)}._();\n\n`;
+      )} {\n  const App${capitalizeFirstLetter(collection.name)}._();\n\n`;
 
       for (const mode of collection.modes) {
         for (const variableId of collection.variableIds) {
@@ -544,12 +594,12 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
               const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
                 asColor.r
               )}${toHex(asColor.g)}${toHex(asColor.b)})`;
-              classContent += `  static const Color ${formatVariableName(
+              classContent += `  static const Color ${formatVariableNameWMode(
                 mode.name,
                 variable?.name ?? "null"
               )} = ${colorCode};\n`;
             } else {
-              classContent += `  static const dynamic ${formatVariableName(
+              classContent += `  static const dynamic ${formatVariableNameWMode(
                 mode.name,
                 variable?.name ?? "null"
               )} = ${aliasValue};\n`;
@@ -565,12 +615,12 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
             const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
               asColor.r
             )}${toHex(asColor.g)}${toHex(asColor.b)})`;
-            classContent += `  static const Color ${formatVariableName(
+            classContent += `  static const Color ${formatVariableNameWMode(
               mode.name,
               variable?.name ?? "null"
             )} = ${colorCode};\n`;
           } else {
-            classContent += `  static const dynamic ${formatVariableName(
+            classContent += `  static const dynamic ${formatVariableNameWMode(
               mode.name,
               variable?.name ?? "null"
             )} = ${value};\n`;
@@ -587,7 +637,12 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
 }
 
 // Функции вспомогательные
-function formatVariableName(mode: string, name: string): string {
+function formatVariableName(name: string): string {
+  return `${name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())}`;
+}
+
+// Функции вспомогательные
+function formatVariableNameWMode(mode: string, name: string): string {
   return `${mode.toLowerCase()}${capitalize(
     name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
   )}`;
@@ -622,7 +677,7 @@ function convertToCamelCase(name: string): string {
 
 // Получение значения переменной для Dart (например, Color или число)
 function getDartValue(variable: any, mode: any): string {
-  const valueForMode = variable.values.find(
+  const valueForMode = variable?.values?.find(
     (v: any) => v.modeId === mode.modeId
   );
   if (variable.resolvedType === "COLOR" && valueForMode) {
