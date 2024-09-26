@@ -1,5 +1,5 @@
 if (figma.editorType === "figma" || figma.editorType === "dev") {
-  figma.showUI(__html__, { width: 600, height: 800 });
+  figma.showUI(__html__, { width: 650, height: 850 });
 
   figma.ui.onmessage = async (msg) => {
     if (msg.type === "generate-textstyles") {

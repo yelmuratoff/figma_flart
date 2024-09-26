@@ -2,101 +2,172 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Generate Dart Code</title>
     <style>
       body {
-        font-family: Roboto, sans-serif;
+        font-family: "Gill Sans", sans-serif;
         margin: 0;
         padding: 0;
-        background-color: #f5f5f5;
+        background-color: #f0f0f5;
+        color: #2b2b2b;
+        line-height: 1.6;
+      }
+
+      #header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      #header img {
+        height: 60px;
+        margin-right: 20px;
       }
 
       h2 {
         text-align: center;
-        color: #41d0fd;
-        margin-top: 24px;
+        font-size: 40px;
+        letter-spacing: 0.5px;
       }
 
       fieldset {
-        border: 0;
-        padding: 16px;
-        background-color: #ffffff;
-        margin: 16px auto;
-        max-width: 400px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: none;
+        padding: 10px;
+        background-color: white;
+        margin: 5px auto;
+        max-width: 500px;
+        border-radius: 16px;
+        box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      label {
+        font-family: "Gill Sans", sans-serif;
+        display: block;
+        font-size: 16px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        position: relative;
+        padding-left: 25px;
+        user-select: none;
+      }
+
+      input[type="checkbox"] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin: 0;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        appearance: none;
+        background-color: #fff;
+        border: 2px solid #41d0fc;
+        border-radius: 4px;
+        outline: none;
+        transition: background-color 0.3s ease, border 0.3s ease;
+      }
+
+      input[type="checkbox"]:checked {
+        background-color: #41d0fc;
+      }
+
+      input[type="checkbox"]:checked::before {
+        content: "\2713";
+        display: block;
+        color: white;
+        font-size: 14px;
+        text-align: center;
+        line-height: 20px;
       }
 
       button {
-        background-color: #41d0fd;
+        background-color: #41d0fc;
+        font-family: "Gill Sans", sans-serif;
         color: white;
         border: none;
-        padding: 12px 16px;
+        padding: 12px 20px;
         border-radius: 8px;
         cursor: pointer;
-        margin: 8px;
         font-size: 16px;
+        font-weight: 500;
+        margin: 5px;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
         display: inline-block;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
       }
 
       button:hover {
-        background-color: #85e3ff;
+        background-color: #b55afe;
+        box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
       }
 
       #codeBlock {
-        background-color: #f1f1f1;
-        height: 500px;
+        background-color: #f9f9f9;
+        height: 800px;
         overflow: auto;
         border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 16px;
-        margin: 16px auto;
-        max-width: 400px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        font-family: monospace;
+        border-radius: 16px;
+        padding: 20px;
+        margin: 24px auto;
+        max-width: 500px;
+        font-family: "Courier New", monospace;
         position: relative;
+        box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.05);
       }
 
       #copyButton {
-        background-color: #41d0fd;
+        background-color: #ff7361;
         color: white;
         border: none;
-        padding: 8px 12px;
+        padding: 8px 16px;
         border-radius: 8px;
         cursor: pointer;
         position: absolute;
-        top: 8px;
+        top: 12px;
         right: 16px;
+        font-size: 14px;
+      }
+
+      #copyButton:hover {
+        background-color: #ff4d12;
       }
 
       #buttonGroup {
         text-align: center;
-        margin-top: 16px;
+        margin-top: 5px;
       }
     </style>
   </head>
 
   <body>
-    <h2>Flutter Style Generator</h2>
+    <div id="header">
+      <img
+        src="data:image/png;base64,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"
+        height="140"
+        alt="Logo"
+      />
+      <h2>Flart</h2>
+    </div>
 
     <fieldset>
-      <legend>TextStyle Options</legend>
+      <legend>Options</legend>
       <label>
         <input type="checkbox" id="useThemeExtensions" />
         Use Theme Extensions
       </label>
       <label>
         <input type="checkbox" id="includeFontName" />
-        Include font name
+        Include font name (For TextStyles)
       </label>
     </fieldset>
 
-    <!-- New Button Group for Sizes, Gaps, Border Radiuses, and Tokens -->
     <div id="buttonGroup">
       <button id="generateTextStyles">Generate TextStyles</button>
       <button id="generateColors">Generate Colors</button>
       <button id="generateEffects">Generate Effects</button>
-      <button id="generateVariables">Generate variables</button>
+      <button id="generateVariables">Generate Variables</button>
     </div>
 
     <div id="codeBlock">
@@ -105,7 +176,6 @@
     </div>
 
     <script>
-      // Button click handlers for generating code
       document.getElementById("generateTextStyles").onclick = () => {
         const useThemeExtensions =
           document.getElementById("useThemeExtensions").checked;
@@ -146,7 +216,6 @@
         );
       };
 
-      // Display generated Dart code
       window.onmessage = (event) => {
         if (event.data.pluginMessage.type === "dart-code") {
           document.getElementById("codeContent").textContent =
@@ -154,7 +223,6 @@
         }
       };
 
-      // Copy code to clipboard
       document.getElementById("copyButton").onclick = () => {
         const codeBlock = document.getElementById("codeContent").textContent;
 
@@ -164,7 +232,6 @@
             (err) => alert("Failed to copy code: " + err)
           );
         } else {
-          // Fallback for browsers that do not support Clipboard API
           const textArea = document.createElement("textarea");
           textArea.value = codeBlock;
           document.body.appendChild(textArea);
