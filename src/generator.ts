@@ -536,7 +536,9 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
 
       // Генерация значений для разных модов с учетом алиасов
       for (const mode of collection.modes) {
-        dartCode += `  static IApp${className} get ${mode.name.toLowerCase()}${className} => const App${className}(\n`;
+        dartCode += `  static IApp${className} get ${removeSpacesAndDigits(
+          mode.name.toLowerCase()
+        )}${className} => const App${className}(\n`;
 
         for (const variableId of collection.variableIds) {
           const variable = await figma.variables.getVariableByIdAsync(
@@ -643,12 +645,17 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
   return dartCode;
 }
 
-// Функции вспомогательные
 function formatVariableName(name: string): string {
-  return `${name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())}`;
+  const formatted = name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) =>
+    chr.toUpperCase()
+  );
+  return formatted.charAt(0).toLowerCase() + formatted.slice(1);
 }
 
-// Функции вспомогательные
+function removeSpacesAndDigits(text: string): string {
+  return text.replace(/[0-9\s]/g, "");
+}
+
 function formatVariableNameWMode(mode: string, name: string): string {
   return `${mode.toLowerCase()}${capitalize(
     name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
