@@ -307,8 +307,10 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
   for (const collection of collections) {
     const className = formatClassName(collection.name);
     const hasVariables = collection.variableIds.length > 0;
+    const hasModes = collection.modes.length > 1;
+    
 
-    if (useThemeExtensions && hasVariables) {
+    if (useThemeExtensions && hasVariables && hasModes) {
       // Интерфейс для ThemeExtension
       dartCode += `abstract interface class IApp${className} extends ThemeExtension<IApp${className}> {\n`;
 
@@ -500,11 +502,19 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
               )}${toHex(asColor.g)}${toHex(asColor.b)})`;
               classContent += `  static const Color ${formatVariableNameWMode(
                 mode.name,
+                hasModes,
                 variable?.name ?? "null"
               )} = ${colorCode};\n`;
+            } else if (aliasVariable?.resolvedType === "FLOAT") {
+              classContent += `  static const double ${formatVariableNameWMode(
+                mode.name,
+                hasModes,
+                variable?.name ?? "null"
+              )} = ${aliasValue};\n`;
             } else {
               classContent += `  static const dynamic ${formatVariableNameWMode(
                 mode.name,
+                hasModes,
                 variable?.name ?? "null"
               )} = ${aliasValue};\n`;
             }
@@ -521,11 +531,20 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
             )}${toHex(asColor.g)}${toHex(asColor.b)})`;
             classContent += `  static const Color ${formatVariableNameWMode(
               mode.name,
+              hasModes,
               variable?.name ?? "null"
             )} = ${colorCode};\n`;
-          } else {
+          } else if (variable?.resolvedType === "FLOAT") {
+            classContent += `  static const double ${formatVariableNameWMode(
+              mode.name,
+              hasModes,
+              variable?.name ?? "null"
+            )} = ${value};\n`;
+          }
+          else {
             classContent += `  static const dynamic ${formatVariableNameWMode(
               mode.name,
+              hasModes,
               variable?.name ?? "null"
             )} = ${value};\n`;
           }
@@ -656,10 +675,13 @@ function removeSpacesAndDigits(text: string): string {
   return text.replace(/[0-9\s]/g, "");
 }
 
-function formatVariableNameWMode(mode: string, name: string): string {
-  return `${mode.toLowerCase()}${capitalize(
+function formatVariableNameWMode(mode: string, hasMode: boolean, name: string): string {
+   if (!hasMode) { 
+      return formatVariableName(name);
+   }
+  return removeSpacesAndDigits(`${mode.toLowerCase()}${capitalize(
     name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
-  )}`;
+  )}`);
 }
 
 function formatClassName(name: string): string {
