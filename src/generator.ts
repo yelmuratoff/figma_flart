@@ -494,13 +494,13 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
           
         }
       }
-      dartCode += "];\n";
+      dartCode += "  ];\n";
 
       dartCode += "}\n";
     } else {
-       dartCode += `final class App${capitalizeFirstLetter(
+       dartCode += `final class App${formatClassName(
         collection.name
-      )} {\n  const App${capitalizeFirstLetter(collection.name)}._();\n\n`;
+      )} {\n  const App${formatClassName(collection.name)}._();\n\n`;
 
       for (const mode of collection.modes) {
         for (const variableId of collection.variableIds) {
@@ -549,12 +549,14 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
             const colorCode = `Color(0x${toHex(asColor.a)}${toHex(
               asColor.r
             )}${toHex(asColor.g)}${toHex(asColor.b)})`;
+            dartCode += `  /// ${variable?.name} = ${colorCode}\n`;
             dartCode += `  static const Color ${formatVariableNameWMode(
               mode.name,
               hasModes,
               variable?.name ?? "null"
             )} = ${colorCode};\n`;
           } else if (variable?.resolvedType === "FLOAT") {
+            dartCode += `  /// ${variable?.name} = ${value}\n`;
             dartCode += `  static const double ${formatVariableNameWMode(
               mode.name,
               hasModes,
@@ -562,6 +564,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
             )} = ${value};\n`;
           }
           else {
+            dartCode += `  /// ${variable?.name} = ${value}\n`;
             dartCode += `  static const dynamic ${formatVariableNameWMode(
               mode.name,
               hasModes,
@@ -586,7 +589,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
           
         }
       }
-      dartCode += "];\n";
+      dartCode += "  ];\n";
 
       dartCode += `}\n\n`;
     }
@@ -721,9 +724,9 @@ function formatVariableNameWMode(mode: string, hasMode: boolean, name: string): 
 }
 
 function formatClassName(name: string): string {
-  return name
+  return removeSpacesAndDigits(name
     .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
-    .replace(/^(.)/, (chr) => chr.toUpperCase());
+    .replace(/^(.)/, (chr) => chr.toUpperCase()));
 }
 
 function capitalizeFirstLetter(string: string): string {
