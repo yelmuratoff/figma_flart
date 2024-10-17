@@ -576,7 +576,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
 
             // Генерация props для класса
       
-      dartCode += `\n  List<dynamic> get props => [\n`;
+      dartCode += `\n  static List<dynamic> get props => [\n`;
       for (const mode of collection.modes) {
         for (const variableId of collection.variableIds) {
           const variable = await figma.variables.getVariableByIdAsync(
