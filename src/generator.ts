@@ -329,7 +329,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
         }
       }
 
-      dartCode += `List<dynamic> get props;`;
+      dartCode += `List<Map<String, dynamic>> get props;`;
       dartCode += "}\n\n";
 
       // Класс Colors с реализацией
@@ -481,7 +481,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
       }
 
       // Генерация props для класса
-      dartCode += `  @override\n  List<dynamic> get props => [\n`;
+      dartCode += `  @override\n  List<Map<String, dynamic>> get props => [\n`;
       for (const mode of collection.modes) {
         for (const variableId of collection.variableIds) {
           const variable = await figma.variables.getVariableByIdAsync(
@@ -490,7 +490,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
 
           const variableName = formatVariableName(variable?.name ?? "");
 
-         dartCode += `    ${variableName},\n`;
+         dartCode += `    {'${variableName}' : ${variableName}},\n`;
           
         }
       }
@@ -574,9 +574,8 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
         }
       }
 
-            // Генерация props для класса
-      
-      dartCode += `\n  static List<dynamic> get props => [\n`;
+      // Генерация props для класса
+      dartCode += `\n  static List<Map<String, dynamic>> get props => [\n`;
       for (const mode of collection.modes) {
         for (const variableId of collection.variableIds) {
           const variable = await figma.variables.getVariableByIdAsync(
@@ -585,7 +584,7 @@ async function generateVariables(useThemeExtensions: boolean): Promise<string> {
 
           const variableName = formatVariableName(variable?.name ?? "");
 
-         dartCode += `    ${variableName},\n`;
+         dartCode += `    {'${variableName}':${variableName}},\n`;
           
         }
       }
