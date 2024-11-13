@@ -618,10 +618,18 @@ function generateColorStyleDartCode(
 }
 
 function inferFontWeightFromStyle(fontStyle: string): number {
+  if (fontStyle.includes("Black")) return 900;
+  if (fontStyle.includes("ExtraBold") || fontStyle.includes("Heavy")) return 800;
   if (fontStyle.includes("Bold")) return 700;
+  if (fontStyle.includes("SemiBold") || fontStyle.includes("DemiBold")) return 600;
   if (fontStyle.includes("Medium")) return 500;
+  if (fontStyle.includes("Regular") || fontStyle.includes("Normal")) return 400;
+  if (fontStyle.includes("Light")) return 300;
+  if (fontStyle.includes("ExtraLight") || fontStyle.includes("UltraLight")) return 200;
+  if (fontStyle.includes("Thin") || fontStyle.includes("Hairline")) return 100;
   return 400;
 }
+
 
 function inferFontStyleFromStyle(fontStyle: string): string {
   if (fontStyle.includes("Italic")) return "FontStyle.italic";
