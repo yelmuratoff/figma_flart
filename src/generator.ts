@@ -72,8 +72,8 @@ async function generateTextStyles(
 
         if (letterSpacing != null && letterSpacing !== 0) {
           console.log("letterSpacing", letterSpacing, fontSize);
-          const roundedLetterSpacing = Number(letterSpacing.toFixed(1));
-          dartCode += `          letterSpacing: ${roundedLetterSpacing},\n`;
+         //  const roundedLetterSpacing = Number(letterSpacing.toFixed(1));
+          dartCode += `          letterSpacing: ${letterSpacing},\n`;
         }
         dartCode += `          fontStyle: ${fontStyle},\n`;
         dartCode += `          decoration: ${textDecoration},\n`;
@@ -588,8 +588,8 @@ function generateTextStyleDartCode(
     letterSpacing !== 0
   ) {
     console.log("letterSpacing", letterSpacing, fontSize);
-    const roundedLetterSpacing = Number(letterSpacing.toFixed(1));
-    code += `    letterSpacing: ${roundedLetterSpacing},\n`;
+   //  const roundedLetterSpacing = Number(letterSpacing.toFixed(1));
+    code += `    letterSpacing: ${letterSpacing},\n`;
   }
   code += `    fontStyle: ${fontStyle},\n`;
   code += `    decoration: ${textDecoration},\n`;
@@ -618,17 +618,18 @@ function generateColorStyleDartCode(
 }
 
 function inferFontWeightFromStyle(fontStyle: string): number {
-  if (fontStyle.includes("Black")) return 900;
-  if (fontStyle.includes("ExtraBold") || fontStyle.includes("Heavy")) return 800;
-  if (fontStyle.includes("Bold")) return 700;
-  if (fontStyle.includes("SemiBold") || fontStyle.includes("DemiBold")) return 600;
-  if (fontStyle.includes("Medium")) return 500;
-  if (fontStyle.includes("Regular") || fontStyle.includes("Normal")) return 400;
-  if (fontStyle.includes("Light")) return 300;
-  if (fontStyle.includes("ExtraLight") || fontStyle.includes("UltraLight")) return 200;
-  if (fontStyle.includes("Thin") || fontStyle.includes("Hairline")) return 100;
-  return 400;
+  if (fontStyle === "Black") return 900;
+  if (fontStyle === "Extra Bold" || fontStyle === "Heavy") return 800;
+  if (fontStyle === "Bold") return 700;
+  if (fontStyle === "Semi Bold" || fontStyle === "DemiBold") return 600;
+  if (fontStyle === "Medium") return 500;
+  if (fontStyle === "Regular" || fontStyle === "Normal") return 400;
+  if (fontStyle === "Light") return 300;
+  if (fontStyle === "Extra Light" || fontStyle === "Ultra Light") return 200;
+  if (fontStyle === "Thin" || fontStyle === "Hairline") return 100;
+  return 400; // Default weight
 }
+
 
 
 function inferFontStyleFromStyle(fontStyle: string): string {
@@ -677,6 +678,7 @@ function formatEffectStyleName(name: string, index: number): string {
 
 function extractTextStyleProperties(style: any) {
   let letterSpacing = 0;
+  console.log("style", style);
   const fontSize = style.fontSize;
 
   if (style.letterSpacing) {
