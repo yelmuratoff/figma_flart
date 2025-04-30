@@ -1,15 +1,11 @@
 {
-  "include": [
-    "src/*.ts"
-  ],
+  "include": ["src/*.ts", "src/generators/generateColors.ts", "src/generators/generateEffectStyles.ts", "src/generators/generateTextStyles.ts", "src/generators/generateVariables.ts"],
   "compilerOptions": {
     "target": "es6",
     "lib": ["es6"],
     "strict": true,
+    "module": "amd",
     "outFile": "src/main.js",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./node_modules/@figma"
-    ]
+    "typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
   }
 }

@@ -18,6 +18,8 @@ The process of translating text styles and colors from Figma to Flutter can lead
 - Errors such as incorrect values, typos, or missing styles can occur, which can be costly and time-consuming to fix
 - Every time a designer updates a text style in Figma, developers must manually update the corresponding code, which is both inefficient and prone to errors
 
+npm run build
+
 ## Solution
 
 Automating the conversion process eliminates these issues, making the design-to-code workflow more efficient, accurate, and consistent.
