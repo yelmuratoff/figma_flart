@@ -1,5 +1,5 @@
 // Types for better code clarity
-type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
+type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN" | "VARIABLE_ALIAS";
 type TypeMapping = {
   COLOR: "Color";
   FLOAT: "double";
@@ -51,14 +51,26 @@ async function resolveAliasValue(
 
 async function formatValue(value: any, type: VariableType): Promise<string> {
   if (
+    typeof value === "object" &&
+    value !== null &&
+    value.type === "VARIABLE_ALIAS"
+  ) {
+    const { value: resolvedValue, type: resolvedType } =
+      await resolveAliasValue(value);
+    return formatValue(resolvedValue, resolvedType);
+  }
+
+  if (
     type === "COLOR" &&
     typeof value === "object" &&
     value !== null &&
     "r" in value
   ) {
     const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
+
     return getColorCode(asColor);
   }
+
   return `${value}`;
 }
 
@@ -118,12 +130,15 @@ class DartVariableGenerator {
     this.dartCode += `  @override\n  Object get type => runtimeType;\n\n`;
 
     // Mode-specific instances
-    await this.generateModeInstances(className, collection, variableIds);
+    await this.generateModeInstances(className, collection, variableIds, true);
 
     // Map getter
     await this.generateMapGetter(collection, variableIds);
 
     this.dartCode += "}\n";
+
+    // Generate standard class
+    await this.generateStandardClass(className, collection);
   }
 
   async generateCopyWithMethod(
@@ -206,40 +221,51 @@ class DartVariableGenerator {
   async generateModeInstances(
     className: string,
     collection: VariableCollection,
-    variableIds: string[]
+    variableIds: string[],
+    isForTheme: boolean
   ): Promise<void> {
     for (const mode of collection.modes) {
       const modeName = removeSpacesAndDigits(mode.name.toLowerCase());
-      this.dartCode += `  static IApp${className} get ${modeName}${className} => const App${className}(\n`;
+      const modeClassName = `App${mode.name}${className}`;
 
-      for (const variableId of variableIds) {
-        const { variable, name } = await processVariable(variableId);
-        if (!variable) continue;
+      if (isForTheme) {
+        this.dartCode += `  static IApp${className} get ${modeName}${className} => const App${className}(\n`;
 
-        const value = variable.valuesByMode[mode.modeId];
-
-        if (typeof value === "object" && value !== null && "type" in value) {
-          // Handle alias variables
-          const { value: aliasValue, type: aliasType } =
-            await resolveAliasValue(value as VariableAlias);
-          const formattedValue = await formatValue(aliasValue, aliasType);
-          this.dartCode += `    ${name}: ${formattedValue},\n`;
-        } else if (
-          typeof value === "object" &&
-          value !== null &&
-          "r" in value
-        ) {
-          // Handle color values
-          const asColor = value as RGBA;
-          const colorCode = getColorCode(asColor);
-          this.dartCode += `    ${name}: ${colorCode},\n`;
-        } else {
-          // Handle other values
-          this.dartCode += `    ${name}: ${value},\n`;
+        for (const variableId of variableIds) {
+          const { name } = await processVariable(variableId);
+          this.dartCode += `    ${name}: ${modeClassName}.${name},\n`;
         }
-      }
 
-      this.dartCode += ");\n\n";
+        this.dartCode += `  );\n\n`;
+      } else {
+        this.dartCode += `  static IApp${className} get ${modeName}${className} => const App${className}(\n`;
+
+        for (const variableId of variableIds) {
+          const { variable, name } = await processVariable(variableId);
+          if (!variable) continue;
+
+          const value = variable.valuesByMode[mode.modeId];
+
+          if (typeof value === "object" && value !== null && "type" in value) {
+            const { value: aliasValue, type: aliasType } =
+              await resolveAliasValue(value as VariableAlias);
+            const formattedValue = await formatValue(aliasValue, aliasType);
+            this.dartCode += `    ${name}: ${formattedValue},\n`;
+          } else if (
+            typeof value === "object" &&
+            value !== null &&
+            "r" in value
+          ) {
+            const asColor = value as RGBA;
+            const colorCode = getColorCode(asColor);
+            this.dartCode += `    ${name}: ${colorCode},\n`;
+          } else {
+            this.dartCode += `    ${name}: ${value},\n`;
+          }
+        }
+
+        this.dartCode += `  );\n\n`;
+      }
     }
   }
 
@@ -247,31 +273,28 @@ class DartVariableGenerator {
     className: string,
     collection: VariableCollection
   ): Promise<void> {
-    this.dartCode += `final class App${className} {\n`;
-    this.dartCode += `  const App${className}._();\n\n`;
-
     const hasModes = collection.modes.length > 1;
 
     for (const mode of collection.modes) {
+      const modeClassName = `App${hasModes ? mode.name : ""}${className}`;
+      this.dartCode += `final class ${modeClassName} {\n`;
+      this.dartCode += `  const ${modeClassName}._();\n\n`;
+
+      const entries: string[] = [];
+
       for (const variableId of collection.variableIds) {
         const variable = await figma.variables.getVariableByIdAsync(variableId);
         if (!variable) continue;
 
         const value = variable.valuesByMode[mode.modeId];
-        const formattedName = formatVariableNameWMode(
-          mode.name,
-          hasModes,
-          variable.name
-        );
-
-        // Add comment for the variable
-        this.dartCode += `  /// ${variable.name}\n`;
+        const formattedName = formatVariableName(variable.name); // без mode
 
         if (typeof value === "object" && value !== null && "type" in value) {
-          // Handle alias variables
           const { value: aliasValue, type: aliasType } =
             await resolveAliasValue(value as VariableAlias);
+
           const formattedValue = await formatValue(aliasValue, aliasType);
+
           const dartType =
             aliasType === "COLOR"
               ? "Color"
@@ -279,28 +302,47 @@ class DartVariableGenerator {
               ? "double"
               : "dynamic";
 
+          this.commentField(variable, formattedValue, hasModes, mode);
           this.dartCode += `  static const ${dartType} ${formattedName} = ${formattedValue};\n`;
+          entries.push(`{'${formattedName}': ${formattedName}}`);
         } else if (
           typeof value === "object" &&
           value !== null &&
           "r" in value
         ) {
-          // Handle color values
           const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
           const colorCode = getColorCode(asColor);
+          this.commentField(variable, colorCode, hasModes, mode);
           this.dartCode += `  static const Color ${formattedName} = ${colorCode};\n`;
+          entries.push(`{'${formattedName}': ${formattedName}}`);
         } else if (variable.resolvedType === "FLOAT") {
+          this.commentField(variable, value.toString(), hasModes, mode);
           this.dartCode += `  static const double ${formattedName} = ${value};\n`;
+          entries.push(`{'${formattedName}': ${formattedName}}`);
         } else {
+          this.commentField(variable, value.toString(), hasModes, mode);
           this.dartCode += `  static const dynamic ${formattedName} = ${value};\n`;
+          entries.push(`{'${formattedName}': ${formattedName}}`);
         }
       }
+
+      // Generate map
+      this.dartCode += `\nstatic List<Map<String, dynamic>> get map => [\n    ${entries.join(
+        ",\n    "
+      )}\n  ];\n`;
+      this.dartCode += "}\n\n";
     }
+  }
 
-    // Generate map getter
-    await this.generateMapGetter(collection, collection.variableIds);
-
-    this.dartCode += "}\n\n";
+  private commentField(
+    variable: Variable,
+    formattedValue: string,
+    hasModes: boolean,
+    mode: { modeId: string; name: string }
+  ) {
+    this.dartCode += `  /// Name: ${variable.name}, value: ${formattedValue}, ${
+      hasModes ? `mode: ${mode.name}` : ""
+    }\n`;
   }
 
   async generateMapGetter(
