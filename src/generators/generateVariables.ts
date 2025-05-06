@@ -340,8 +340,8 @@ class DartVariableGenerator {
     hasModes: boolean,
     mode: { modeId: string; name: string }
   ) {
-    this.dartCode += `  /// Name: ${variable.name}, value: ${formattedValue}, ${
-      hasModes ? `mode: ${mode.name}` : ""
+    this.dartCode += `  /// Name: ${variable.name}, value: ${formattedValue}${
+      hasModes ? `, mode: ${mode.name}` : ""
     }\n`;
   }
 
