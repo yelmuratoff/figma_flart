@@ -156,7 +156,7 @@ function formatStyleName(name: string, index: number): string {
 }
 
 function toHex(channel: number): string {
-  return padStart(Math.floor(channel * 255).toString(16), 2, "0");
+  return padStart(Math.round(channel * 255).toString(16), 2, "0");
 }
 
 function padStart(
