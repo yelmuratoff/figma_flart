@@ -1,3 +1,10 @@
+import {
+  initialize,
+  toHex,
+  formatVariableName,
+  formatClassName,
+} from "../utils";
+
 // Types for better code clarity
 type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN" | "VARIABLE_ALIAS";
 type TypeMapping = {
@@ -367,7 +374,9 @@ class DartVariableGenerator {
 }
 
 // Main function
-async function generateVariables(useThemeExtensions: boolean): Promise<string> {
+export async function generateVariables(
+  useThemeExtensions: boolean
+): Promise<string> {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
   const generator = new DartVariableGenerator();
 

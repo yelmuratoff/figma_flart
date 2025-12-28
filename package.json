@@ -1,19 +1,20 @@
 {
-  "name": "flart",
-  "version": "1.0.0",
-  "description": "Your Figma Plugin",
-  "main": "src/main.js",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "watch": "npm run build -- --watch"
-  },
-  "author": "",
-  "license": "",
-  "devDependencies": {
-    "@figma/plugin-typings": "^1.100.2",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.5"
-  }
+   "name": "flart",
+   "version": "1.0.0",
+   "description": "Your Figma Plugin",
+   "main": "src/main.js",
+   "scripts": {
+      "build": "tsc && esbuild src/main.ts --bundle --outfile=src/main.js",
+      "watch": "esbuild src/main.ts --bundle --outfile=src/main.js --watch"
+   },
+   "author": "",
+   "license": "",
+   "devDependencies": {
+      "@figma/plugin-typings": "^1.100.2",
+      "@typescript-eslint/eslint-plugin": "^6.21.0",
+      "@typescript-eslint/parser": "^6.21.0",
+      "esbuild": "^0.27.2",
+      "eslint": "^8.57.0",
+      "typescript": "^5.4.5"
+   }
 }

@@ -1,3 +1,8 @@
+import { generateTextStyles } from "./generators/generateTextStyles";
+import { generateColors } from "./generators/generateColors";
+import { generateEffectStyles } from "./generators/generateEffectStyles";
+import { generateVariables } from "./generators/generateVariables";
+
 if (figma.editorType === "figma" || figma.editorType === "dev") {
   figma.showUI(__html__, { width: 650, height: 850 });
 

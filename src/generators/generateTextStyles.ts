@@ -1,4 +1,11 @@
-async function generateTextStyles(
+import {
+  initialize,
+  formatStyleName,
+  extractTextStyleProperties,
+  generateTextStyleDartCode,
+} from "../utils";
+
+export async function generateTextStyles(
   useThemeExtensions: boolean,
   includeFontName: boolean
 ): Promise<string> {

@@ -10,9 +10,9 @@
     "target": "es6",
     "lib": ["es6"],
     "strict": true,
-    "module": "amd",
-    "ignoreDeprecations": "6.0",
-    "outFile": "src/main.js",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
   }
 }

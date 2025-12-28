@@ -1,4 +1,6 @@
-async function generateEffectStyles(): Promise<string> {
+import { initialize, formatEffectStyleName, toHex } from "../utils";
+
+export async function generateEffectStyles(): Promise<string> {
   try {
     const localEffectStyles = await figma.getLocalEffectStylesAsync();
 

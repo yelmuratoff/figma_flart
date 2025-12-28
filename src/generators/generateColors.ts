@@ -1,4 +1,11 @@
-async function generateColors(): Promise<string> {
+import {
+  initialize,
+  generateColorStyleDartCode,
+  formatColorName,
+  toHex,
+} from "../utils";
+
+export async function generateColors(): Promise<string> {
   try {
     const localColorStyles = await figma.getLocalPaintStylesAsync();
 

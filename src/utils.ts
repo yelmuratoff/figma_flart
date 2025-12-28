@@ -1,4 +1,4 @@
-function generateTextStyleDartCode(
+export function generateTextStyleDartCode(
   styleName: string,
   {
     fontSize,
@@ -40,7 +40,7 @@ function generateTextStyleDartCode(
   return code;
 }
 
-function generateColorStyleDartCode(
+export function generateColorStyleDartCode(
   styleName: string,
   r: number,
   g: number,
@@ -59,7 +59,7 @@ function generateColorStyleDartCode(
   return code;
 }
 
-function inferFontWeightFromStyle(fontStyle: string): number {
+export function inferFontWeightFromStyle(fontStyle: string): number {
   if (fontStyle === "Black") return 900;
   if (fontStyle === "Extra Bold" || fontStyle === "Heavy") return 800;
   if (fontStyle === "Bold") return 700;
@@ -72,13 +72,13 @@ function inferFontWeightFromStyle(fontStyle: string): number {
   return 400; // Default weight
 }
 
-function inferFontStyleFromStyle(fontStyle: string): string {
+export function inferFontStyleFromStyle(fontStyle: string): string {
   if (fontStyle.includes("Italic")) return "FontStyle.italic";
   if (fontStyle.includes("Oblique")) return "FontStyle.italic";
   return "FontStyle.normal";
 }
 
-function mapTextDecorationToDart(decoration: string): string {
+export function mapTextDecorationToDart(decoration: string): string {
   const map: Record<string, string> = {
     none: "TextDecoration.none",
     underline: "TextDecoration.underline",
@@ -90,7 +90,7 @@ function mapTextDecorationToDart(decoration: string): string {
     : "TextDecoration.none";
 }
 
-function formatColorName(name: string, index: number): string {
+export function formatColorName(name: string, index: number): string {
   if (!name) return `color${index}`;
   const words = name
     .replace(/[^a-zA-Z0-9 ]/g, " ")
@@ -103,7 +103,7 @@ function formatColorName(name: string, index: number): string {
     .join("");
 }
 
-function formatEffectStyleName(name: string, index: number): string {
+export function formatEffectStyleName(name: string, index: number): string {
   if (!name) return `effectStyle${index}`;
   const words = name
     .replace(/[^a-zA-Z0-9 ]/g, " ")
@@ -116,7 +116,7 @@ function formatEffectStyleName(name: string, index: number): string {
     .join("");
 }
 
-function extractTextStyleProperties(style: any) {
+export function extractTextStyleProperties(style: any) {
   let letterSpacing = 0;
   console.log("style", style);
   const fontSize = style.fontSize;
@@ -142,7 +142,7 @@ function extractTextStyleProperties(style: any) {
   };
 }
 
-function formatStyleName(name: string, index: number): string {
+export function formatStyleName(name: string, index: number): string {
   if (!name) return `textStyle${index}`;
   const words = name
     .replace(/[^a-zA-Z0-9 ]/g, " ")
@@ -155,11 +155,11 @@ function formatStyleName(name: string, index: number): string {
     .join("");
 }
 
-function toHex(channel: number): string {
+export function toHex(channel: number): string {
   return padStart(Math.round(channel * 255).toString(16), 2, "0");
 }
 
-function padStart(
+export function padStart(
   str: string,
   maxLength: number,
   fillString: string = " "
@@ -170,18 +170,18 @@ function padStart(
   return Array(maxLength - str.length + 1).join(fillString) + str;
 }
 
-function formatVariableName(name: string): string {
+export function formatVariableName(name: string): string {
   const formatted = name.replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) =>
     chr.toUpperCase()
   );
   return formatted.charAt(0).toLowerCase() + formatted.slice(1);
 }
 
-function removeSpacesAndDigits(text: string): string {
+export function removeSpacesAndDigits(text: string): string {
   return text.replace(/[0-9\s]/g, "");
 }
 
-function formatVariableNameWMode(
+export function formatVariableNameWMode(
   mode: string,
   hasMode: boolean,
   name: string
@@ -196,7 +196,7 @@ function formatVariableNameWMode(
   );
 }
 
-function formatClassName(name: string): string {
+export function formatClassName(name: string): string {
   return removeSpacesAndDigits(
     name
       .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
@@ -204,22 +204,22 @@ function formatClassName(name: string): string {
   );
 }
 
-function capitalizeFirstLetter(string: string): string {
+export function capitalizeFirstLetter(string: string): string {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function capitalize(s: string): string {
+export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function convertToCamelCase(name: string): string {
+export function convertToCamelCase(name: string): string {
   return (
     name.charAt(0).toUpperCase() +
     name.slice(1).replace(/\/(.)/g, (_, letter) => letter.toUpperCase())
   );
 }
 
-function getDartValue(variable: any, mode: any): string {
+export function getDartValue(variable: any, mode: any): string {
   const valueForMode = variable?.values?.find(
     (v: any) => v.modeId === mode.modeId
   );
@@ -230,4 +230,16 @@ function getDartValue(variable: any, mode: any): string {
     return valueForMode.toString();
   }
   return "null";
+}
+
+export function initialize() {
+  const now = new Date();
+  const formattedDate = now.toLocaleString("en-US");
+  let dartCode =
+    "// This file is generated by Flart plugin.\n// Please, do not edit this file.\n";
+  dartCode += "// ignore_for_file: unnecessary_import, type=lint\n";
+  dartCode += `// Last updated: ${formattedDate}\n\n`;
+  dartCode += "import 'dart:ui';\n";
+  dartCode += "import 'package:flutter/material.dart';\n\n";
+  return dartCode;
 }
