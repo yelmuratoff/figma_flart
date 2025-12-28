@@ -11,6 +11,7 @@
     "lib": ["es6"],
     "strict": true,
     "module": "amd",
+    "ignoreDeprecations": "6.0",
     "outFile": "src/main.js",
     "typeRoots": ["./node_modules/@types", "./node_modules/@figma"]
   }
