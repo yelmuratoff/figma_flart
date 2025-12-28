@@ -225,8 +225,8 @@ class DartVariableGenerator {
     isForTheme: boolean
   ): Promise<void> {
     for (const mode of collection.modes) {
-      const modeName = removeSpacesAndDigits(mode.name.toLowerCase());
-      const modeClassName = `App${mode.name}${className}`;
+      const modeName = formatVariableName(mode.name);
+      const modeClassName = `App${formatClassName(mode.name)}${className}`;
 
       if (isForTheme) {
         this.dartCode += `  static IApp${className} get ${modeName}${className} => const App${className}(\n`;
@@ -276,7 +276,9 @@ class DartVariableGenerator {
     const hasModes = collection.modes.length > 1;
 
     for (const mode of collection.modes) {
-      const modeClassName = `App${hasModes ? mode.name : ""}${className}`;
+      const modeClassName = `App${
+        hasModes ? formatClassName(mode.name) : ""
+      }${className}`;
       this.dartCode += `final class ${modeClassName} {\n`;
       this.dartCode += `  const ${modeClassName}._();\n\n`;
 

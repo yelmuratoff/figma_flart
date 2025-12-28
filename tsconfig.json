@@ -1,5 +1,11 @@
 {
-  "include": ["src/*.ts", "src/generators/generateColors.ts", "src/generators/generateEffectStyles.ts", "src/generators/generateTextStyles.ts", "src/generators/generateVariables.ts"],
+  "include": [
+    "src/*.ts",
+    "src/generators/generateColors.ts",
+    "src/generators/generateEffectStyles.ts",
+    "src/generators/generateTextStyles.ts",
+    "src/generators/generateVariables.ts"
+  ],
   "compilerOptions": {
     "target": "es6",
     "lib": ["es6"],
