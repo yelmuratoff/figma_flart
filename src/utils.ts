@@ -137,7 +137,9 @@ export function extractTextStyleProperties(style: any) {
     letterSpacing: letterSpacing || 0,
     fontFamily: style.fontName.family,
     lineHeightValue:
-      style.lineHeight?.unit !== "AUTO" ? style.lineHeight.value : "null",
+      style.lineHeight && style.lineHeight.unit !== "AUTO"
+        ? style.lineHeight.value
+        : "null",
     textDecoration: mapTextDecorationToDart(style.textDecoration),
   };
 }
