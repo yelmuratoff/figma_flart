@@ -49,6 +49,20 @@ Automating the conversion process eliminates these issues, making the design-to-
 4.  To open the plugin: **Right-click** on canvas -> **Plugins** -> **Development** -> **Flart**.
 5.  To debug: **Right-click** on the plugin window -> **Inspect** (this opens the developer console for the UI) or use the Figma Desktop console (**Plugins** -> **Development** -> **Open Console**).
 
+## Publishing new version
+
+1.  **Build the project:**
+    ```bash
+    npm run build
+    ```
+2.  **Bump version (optional):** Update the version in `package.json`.
+3.  In Figma Desktop: Go to **Plugins** -> **Manage plugins...**.
+4.  Find **Flart** in the **Development** section.
+5.  Click the **...** (three dots) and select **Publish**.
+6.  If it's an update, select **Publish new version**.
+7.  Fill in the **Release notes** to describe your changes.
+8.  Click **Publish** (it will be available immediately if already approved, or sent for re-review if permissions changed).
+
 ### TODO
 
 - [x] Tokens/Variables
