@@ -7,12 +7,6 @@ import {
 
 // Types for better code clarity
 type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN" | "VARIABLE_ALIAS";
-type TypeMapping = {
-  COLOR: "Color";
-  FLOAT: "double";
-  STRING: "String";
-  BOOLEAN: "bool";
-};
 
 interface VariableData {
   variable: Variable | null;
@@ -21,9 +15,14 @@ interface VariableData {
   dartType: string;
 }
 
+interface ModeInfo {
+  modeId: string;
+  name: string;
+}
+
 function getColorCode(color: RGBA): string {
   return `Color(0x${toHex(color.a)}${toHex(color.r)}${toHex(color.g)}${toHex(
-    color.b
+    color.b,
   )})`;
 }
 
@@ -46,7 +45,7 @@ async function processVariable(variableId: string): Promise<VariableData> {
 }
 
 async function resolveAliasValue(
-  value: VariableAlias
+  value: VariableAlias,
 ): Promise<{ value: any; type: VariableType }> {
   const aliasVariable = await figma.variables.getVariableByIdAsync(value.id);
   const aliasValue = aliasVariable?.valuesByMode["1:0"];
@@ -81,6 +80,23 @@ async function formatValue(value: any, type: VariableType): Promise<string> {
   return `${value}`;
 }
 
+/**
+ * Collects modes from variable collections that have multiple modes.
+ */
+export async function collectVariableModes(): Promise<ModeInfo[] | null> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  for (const collection of collections) {
+    if (collection.modes.length > 1 && collection.variableIds.length > 0) {
+      return collection.modes.map((m) => ({
+        modeId: m.modeId,
+        name: m.name,
+      }));
+    }
+  }
+  return null;
+}
+
 // Main class for generating variable code
 class DartVariableGenerator {
   private dartCode: string = "";
@@ -91,7 +107,7 @@ class DartVariableGenerator {
 
   async generateThemeExtensionInterface(
     className: string,
-    variableIds: string[]
+    variableIds: string[],
   ): Promise<void> {
     this.dartCode += `abstract interface class IApp${className} extends ThemeExtension<IApp${className}> {\n`;
 
@@ -108,7 +124,8 @@ class DartVariableGenerator {
   async generateThemeExtensionImplementation(
     className: string,
     collection: VariableCollection,
-    variableIds: string[]
+    variableIds: string[],
+    selectedModeIds?: string[],
   ): Promise<void> {
     this.dartCode += `@immutable\nfinal class App${className} implements IApp${className} {\n`;
 
@@ -137,7 +154,13 @@ class DartVariableGenerator {
     this.dartCode += `  @override\n  Object get type => runtimeType;\n\n`;
 
     // Mode-specific instances
-    await this.generateModeInstances(className, collection, variableIds, true);
+    const modes =
+      selectedModeIds && selectedModeIds.length > 0
+        ? collection.modes.filter(
+            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
+          )
+        : collection.modes;
+    await this.generateModeInstances(className, modes, variableIds, true);
 
     // Map getter
     await this.generateMapGetter(collection, variableIds);
@@ -145,12 +168,16 @@ class DartVariableGenerator {
     this.dartCode += "}\n";
 
     // Generate standard class
-    await this.generateStandardClass(className, collection);
+    await this.generateStandardClassForModes(
+      className,
+      collection,
+      selectedModeIds,
+    );
   }
 
   async generateCopyWithMethod(
     className: string,
-    variableIds: string[]
+    variableIds: string[],
   ): Promise<void> {
     this.dartCode += `\n  @override\n  App${className} copyWith({\n`;
 
@@ -171,16 +198,15 @@ class DartVariableGenerator {
 
   async generateLerpMethod(
     className: string,
-    variableIds: string[]
+    variableIds: string[],
   ): Promise<void> {
     this.dartCode += `  @override\n  App${className} lerp(App${className}? other, double t) {\n`;
     this.dartCode += "    if (other == null) return this;\n";
     this.dartCode += `    return App${className}(\n`;
 
     for (const variableId of variableIds) {
-      const { variable, name, variableType } = await processVariable(
-        variableId
-      );
+      const { variable, name, variableType } =
+        await processVariable(variableId);
       if (!variable) continue;
 
       if (variableType === "Color") {
@@ -196,7 +222,7 @@ class DartVariableGenerator {
 
   async generateEqualsMethod(
     className: string,
-    variableIds: string[]
+    variableIds: string[],
   ): Promise<void> {
     this.dartCode += `\n  @override\n  bool operator ==(Object other) {\n`;
     this.dartCode += `    if (identical(this, other)) return true;\n`;
@@ -227,11 +253,11 @@ class DartVariableGenerator {
 
   async generateModeInstances(
     className: string,
-    collection: VariableCollection,
+    modes: { modeId: string; name: string }[],
     variableIds: string[],
-    isForTheme: boolean
+    isForTheme: boolean,
   ): Promise<void> {
-    for (const mode of collection.modes) {
+    for (const mode of modes) {
       const modeName = formatVariableName(mode.name);
       const modeClassName = `App${formatClassName(mode.name)}${className}`;
 
@@ -276,13 +302,20 @@ class DartVariableGenerator {
     }
   }
 
-  async generateStandardClass(
+  async generateStandardClassForModes(
     className: string,
-    collection: VariableCollection
+    collection: VariableCollection,
+    selectedModeIds?: string[],
   ): Promise<void> {
+    const modes =
+      selectedModeIds && selectedModeIds.length > 0
+        ? collection.modes.filter(
+            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
+          )
+        : collection.modes;
     const hasModes = collection.modes.length > 1;
 
-    for (const mode of collection.modes) {
+    for (const mode of modes) {
       const modeClassName = `App${
         hasModes ? formatClassName(mode.name) : ""
       }${className}`;
@@ -296,7 +329,7 @@ class DartVariableGenerator {
         if (!variable) continue;
 
         const value = variable.valuesByMode[mode.modeId];
-        const formattedName = formatVariableName(variable.name); // без mode
+        const formattedName = formatVariableName(variable.name);
 
         if (typeof value === "object" && value !== null && "type" in value) {
           const { value: aliasValue, type: aliasType } =
@@ -308,8 +341,8 @@ class DartVariableGenerator {
             aliasType === "COLOR"
               ? "Color"
               : aliasType === "FLOAT"
-              ? "double"
-              : "dynamic";
+                ? "double"
+                : "dynamic";
 
           this.commentField(variable, formattedValue, hasModes, mode);
           this.dartCode += `  static const ${dartType} ${formattedName} = ${formattedValue};\n`;
@@ -337,7 +370,7 @@ class DartVariableGenerator {
 
       // Generate map
       this.dartCode += `\nstatic List<Map<String, dynamic>> get map => [\n    ${entries.join(
-        ",\n    "
+        ",\n    ",
       )}\n  ];\n`;
       this.dartCode += "}\n\n";
     }
@@ -347,7 +380,7 @@ class DartVariableGenerator {
     variable: Variable,
     formattedValue: string,
     hasModes: boolean,
-    mode: { modeId: string; name: string }
+    mode: { modeId: string; name: string },
   ) {
     this.dartCode += `  /// Name: ${variable.name}, value: ${formattedValue}${
       hasModes ? `, mode: ${mode.name}` : ""
@@ -356,7 +389,7 @@ class DartVariableGenerator {
 
   async generateMapGetter(
     collection: VariableCollection,
-    variableIds: string[]
+    variableIds: string[],
   ): Promise<void> {
     this.dartCode += `  @override\n  List<Map<String, dynamic>> get map => [\n`;
 
@@ -375,7 +408,8 @@ class DartVariableGenerator {
 
 // Main function
 export async function generateVariables(
-  useThemeExtensions: boolean
+  useThemeExtensions: boolean,
+  selectedModeIds?: string[],
 ): Promise<string> {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
   const generator = new DartVariableGenerator();
@@ -388,15 +422,20 @@ export async function generateVariables(
     if (useThemeExtensions && hasVariables && hasModes) {
       await generator.generateThemeExtensionInterface(
         className,
-        collection.variableIds
+        collection.variableIds,
       );
       await generator.generateThemeExtensionImplementation(
         className,
         collection,
-        collection.variableIds
+        collection.variableIds,
+        selectedModeIds,
       );
     } else {
-      await generator.generateStandardClass(className, collection);
+      await generator.generateStandardClassForModes(
+        className,
+        collection,
+        selectedModeIds,
+      );
     }
   }
 

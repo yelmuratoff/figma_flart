@@ -171,12 +171,21 @@
         text-align: center;
       }
 
-      .mode-button {
+      .mode-option {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      #modeGenerateButton {
         display: block;
         width: 100%;
-        margin-bottom: 8px;
-        padding: 12px 20px;
-        font-size: 16px;
+        margin-top: 12px;
+      }
+
+      #modeGenerateButton:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        box-shadow: none;
       }
 
       #modeCancelButton {
@@ -224,8 +233,9 @@
 
     <div id="modeOverlay">
       <div id="modeDialog">
-        <h3>Select Mode</h3>
-        <div id="modeButtons"></div>
+        <h3>Select Modes</h3>
+        <div id="modeOptions"></div>
+        <button id="modeGenerateButton" disabled>Generate</button>
         <button id="modeCancelButton">Cancel</button>
       </div>
     </div>
@@ -280,6 +290,41 @@
         document.getElementById("modeOverlay").classList.remove("visible");
       };
 
+      // Track current select-mode context
+      var pendingModeMsg = null;
+
+      function updateGenerateButton() {
+        const checked = document.querySelectorAll(
+          '#modeOptions input[type="checkbox"]:checked'
+        );
+        document.getElementById("modeGenerateButton").disabled =
+          checked.length === 0;
+      }
+
+      document.getElementById("modeGenerateButton").onclick = () => {
+        if (!pendingModeMsg) return;
+        const checked = document.querySelectorAll(
+          '#modeOptions input[type="checkbox"]:checked'
+        );
+        const modeIds = Array.from(checked).map((cb) => cb.value);
+        if (modeIds.length === 0) return;
+
+        document.getElementById("modeOverlay").classList.remove("visible");
+        window.parent.postMessage(
+          {
+            pluginMessage: {
+              type: "generate-with-mode",
+              generator: pendingModeMsg.generator,
+              modeIds: modeIds,
+              useThemeExtensions: pendingModeMsg.useThemeExtensions,
+              includeFontName: pendingModeMsg.includeFontName,
+            },
+          },
+          "*"
+        );
+        pendingModeMsg = null;
+      };
+
       window.onmessage = (event) => {
         const msg = event.data.pluginMessage;
 
@@ -288,32 +333,25 @@
         }
 
         if (msg.type === "select-mode") {
-          const container = document.getElementById("modeButtons");
+          pendingModeMsg = msg;
+          const container = document.getElementById("modeOptions");
           container.innerHTML = "";
 
           msg.modes.forEach((mode) => {
-            const btn = document.createElement("button");
-            btn.className = "mode-button";
-            btn.textContent = mode.name;
-            btn.onclick = () => {
-              document
-                .getElementById("modeOverlay")
-                .classList.remove("visible");
-              window.parent.postMessage(
-                {
-                  pluginMessage: {
-                    type: "generate-textstyles-with-mode",
-                    modeId: mode.modeId,
-                    useThemeExtensions: msg.useThemeExtensions,
-                    includeFontName: msg.includeFontName,
-                  },
-                },
-                "*"
-              );
-            };
-            container.appendChild(btn);
+            const label = document.createElement("label");
+            label.className = "mode-option";
+
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.value = mode.modeId;
+            cb.onchange = updateGenerateButton;
+
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + mode.name));
+            container.appendChild(label);
           });
 
+          document.getElementById("modeGenerateButton").disabled = true;
           document.getElementById("modeOverlay").classList.add("visible");
         }
       };
