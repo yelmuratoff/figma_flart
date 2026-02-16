@@ -1,4 +1,4 @@
-import { generateTextStyles } from "./generators/generateTextStyles";
+import { generateTextStyles, collectTextStyleModes } from "./generators/generateTextStyles";
 import { generateColors } from "./generators/generateColors";
 import { generateEffectStyles } from "./generators/generateEffectStyles";
 import { generateVariables } from "./generators/generateVariables";
@@ -10,9 +10,32 @@ if (figma.editorType === "figma" || figma.editorType === "dev") {
     if (msg.type === "generate-textstyles") {
       const useThemeExtensions = msg.useThemeExtensions;
       const includeFontName = msg.includeFontName;
-      let dartCode = await generateTextStyles(
-        useThemeExtensions,
-        includeFontName
+
+      // Check if text styles have variable modes
+      const modes = await collectTextStyleModes();
+      if (modes && modes.length > 1) {
+        // Send modes to UI for user selection
+        figma.ui.postMessage({
+          type: "select-mode",
+          modes: modes,
+          useThemeExtensions,
+          includeFontName,
+        });
+      } else {
+        // No modes — generate directly
+        let dartCode = await generateTextStyles(
+          useThemeExtensions,
+          includeFontName
+        );
+        figma.ui.postMessage({ type: "dart-code", code: dartCode });
+      }
+    }
+
+    if (msg.type === "generate-textstyles-with-mode") {
+      const dartCode = await generateTextStyles(
+        msg.useThemeExtensions,
+        msg.includeFontName,
+        msg.modeId
       );
       figma.ui.postMessage({ type: "dart-code", code: dartCode });
     }

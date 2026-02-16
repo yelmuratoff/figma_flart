@@ -18,11 +18,36 @@ The process of translating text styles and colors from Figma to Flutter can lead
 - Errors such as incorrect values, typos, or missing styles can occur, which can be costly and time-consuming to fix
 - Every time a designer updates a text style in Figma, developers must manually update the corresponding code, which is both inefficient and prone to errors
 
-npm run build
-
 ## Solution
 
 Automating the conversion process eliminates these issues, making the design-to-code workflow more efficient, accurate, and consistent.
+
+## Getting Started
+
+1.  **Install dependencies:**
+
+    ```bash
+    npm install
+    ```
+
+2.  **Build the plugin:**
+
+    ```bash
+    npm run build
+    ```
+
+3.  **Development mode (watch):**
+    ```bash
+    npm run watch
+    ```
+
+## How to test in Figma
+
+1.  Open the **Figma Desktop app**.
+2.  Go to **Plugins** -> **Development** -> **Import plugin from manifest...**.
+3.  Select the `manifest.json` file in this project's root directory.
+4.  To open the plugin: **Right-click** on canvas -> **Plugins** -> **Development** -> **Flart**.
+5.  To debug: **Right-click** on the plugin window -> **Inspect** (this opens the developer console for the UI) or use the Figma Desktop console (**Plugins** -> **Development** -> **Open Console**).
 
 ### TODO
 

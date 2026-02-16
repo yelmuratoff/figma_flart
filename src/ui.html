@@ -138,6 +138,58 @@
         text-align: center;
         margin-top: 5px;
       }
+
+      #modeOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #modeOverlay.visible {
+        display: flex;
+      }
+
+      #modeDialog {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 360px;
+        width: 90%;
+        box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+      }
+
+      #modeDialog h3 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .mode-button {
+        display: block;
+        width: 100%;
+        margin-bottom: 8px;
+        padding: 12px 20px;
+        font-size: 16px;
+      }
+
+      #modeCancelButton {
+        background-color: #e0e0e0;
+        color: #2b2b2b;
+        display: block;
+        width: 100%;
+        margin-top: 4px;
+      }
+
+      #modeCancelButton:hover {
+        background-color: #ccc;
+      }
     </style>
   </head>
 
@@ -168,6 +220,14 @@
       <button id="generateColors">Generate Colors</button>
       <button id="generateEffects">Generate Effects</button>
       <button id="generateVariables">Generate Variables</button>
+    </div>
+
+    <div id="modeOverlay">
+      <div id="modeDialog">
+        <h3>Select Mode</h3>
+        <div id="modeButtons"></div>
+        <button id="modeCancelButton">Cancel</button>
+      </div>
     </div>
 
     <div id="codeBlock">
@@ -216,10 +276,45 @@
         );
       };
 
+      document.getElementById("modeCancelButton").onclick = () => {
+        document.getElementById("modeOverlay").classList.remove("visible");
+      };
+
       window.onmessage = (event) => {
-        if (event.data.pluginMessage.type === "dart-code") {
-          document.getElementById("codeContent").textContent =
-            event.data.pluginMessage.code;
+        const msg = event.data.pluginMessage;
+
+        if (msg.type === "dart-code") {
+          document.getElementById("codeContent").textContent = msg.code;
+        }
+
+        if (msg.type === "select-mode") {
+          const container = document.getElementById("modeButtons");
+          container.innerHTML = "";
+
+          msg.modes.forEach((mode) => {
+            const btn = document.createElement("button");
+            btn.className = "mode-button";
+            btn.textContent = mode.name;
+            btn.onclick = () => {
+              document
+                .getElementById("modeOverlay")
+                .classList.remove("visible");
+              window.parent.postMessage(
+                {
+                  pluginMessage: {
+                    type: "generate-textstyles-with-mode",
+                    modeId: mode.modeId,
+                    useThemeExtensions: msg.useThemeExtensions,
+                    includeFontName: msg.includeFontName,
+                  },
+                },
+                "*"
+              );
+            };
+            container.appendChild(btn);
+          });
+
+          document.getElementById("modeOverlay").classList.add("visible");
         }
       };
 
