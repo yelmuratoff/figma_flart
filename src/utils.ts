@@ -248,19 +248,20 @@ export function commonDartType(dartTypes: string[]): string {
 
 /**
  * Emits a typed `byName` lookup as a Dart switch expression, returning null
- * for an unknown name.
+ * for an unknown name. The parameter is `$name` because the name formatters
+ * strip `$`, so no generated field can shadow it.
  */
 export function generateByNameLookup(
   names: string[],
   dartType: string,
   kind: ByNameKind
 ): string {
-  const signature = `${nullableDartType(dartType)} byName(String name)`;
+  const signature = `${nullableDartType(dartType)} byName(String $name)`;
   if (kind === "abstract") return `  ${signature};\n`;
 
   const prefix =
     kind === "static" ? "static " : kind === "override" ? "@override\n  " : "";
-  let code = `\n  ${prefix}${signature} => switch (name) {\n`;
+  let code = `\n  ${prefix}${signature} => switch ($name) {\n`;
   for (const name of names) {
     code += `    '${name}' => ${name},\n`;
   }
