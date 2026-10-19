@@ -7,6 +7,7 @@ import {
   inferFontStyleFromStyle,
   inferFontWeightFromStyle,
   mapTextDecorationToDart,
+  generateByNameLookup,
 } from "../utils";
 
 interface ModeInfo {
@@ -230,9 +231,14 @@ async function generateThemeExtensionForMode(
     code += `      ${n}: TextStyle.lerp(${n}, other.${n}, t),\n`;
   });
   code += "    );\n  }\n";
+  code += generateByNameLookup(styleNames(textStyles), "TextStyle", "instance");
   code += "}\n";
 
   return code;
+}
+
+function styleNames(textStyles: TextStyle[]): string[] {
+  return textStyles.map((style, index) => formatStyleName(style.name, index));
 }
 
 async function generateAbstractClassForMode(
@@ -255,12 +261,13 @@ async function generateAbstractClassForMode(
     );
   }
 
-  code += `  \n  static List<Map<String, dynamic>> get map => [\n`;
+  code += `  \n  static List<Map<String, TextStyle>> get map => [\n`;
   textStyles.forEach((style, index) => {
     const n = formatStyleName(style.name, index);
     code += `    {'${n}': ${n}},\n`;
   });
   code += "  ];\n";
+  code += generateByNameLookup(styleNames(textStyles), "TextStyle", "static");
   code += "}\n";
 
   return code;
@@ -346,6 +353,11 @@ export async function generateTextStyles(
           dartCode += `      ${n}: TextStyle.lerp(${n}, other.${n}, t),\n`;
         });
         dartCode += "    );\n  }\n";
+        dartCode += generateByNameLookup(
+          styleNames(textStyles),
+          "TextStyle",
+          "instance"
+        );
         dartCode += "}\n";
       } else {
         dartCode += "abstract class AppTextStyles {\n";
@@ -355,12 +367,17 @@ export async function generateTextStyles(
             formatStyleName(style.name, index), props, includeFontName
           );
         });
-        dartCode += `  \n  static List<Map<String, dynamic>> get map => [\n`;
+        dartCode += `  \n  static List<Map<String, TextStyle>> get map => [\n`;
         textStyles.forEach((style, index) => {
           const n = formatStyleName(style.name, index);
           dartCode += `    {'${n}': ${n}},\n`;
         });
         dartCode += "  ];\n";
+        dartCode += generateByNameLookup(
+          styleNames(textStyles),
+          "TextStyle",
+          "static"
+        );
         dartCode += "}\n";
       }
     }

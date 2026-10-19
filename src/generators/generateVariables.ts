@@ -3,6 +3,8 @@ import {
   toHex,
   formatVariableName,
   formatClassName,
+  generateByNameLookup,
+  commonDartType,
 } from "../utils";
 
 // Types for better code clarity
@@ -42,6 +44,20 @@ async function processVariable(variableId: string): Promise<VariableData> {
   }
 
   return { variable, name, variableType, dartType };
+}
+
+async function collectNamesAndType(
+  variableIds: string[],
+): Promise<{ names: string[]; dartType: string }> {
+  const names: string[] = [];
+  const dartTypes: string[] = [];
+  for (const variableId of variableIds) {
+    const { variable, name, dartType } = await processVariable(variableId);
+    if (!variable) continue;
+    names.push(name);
+    dartTypes.push(dartType);
+  }
+  return { names, dartType: commonDartType(dartTypes) };
 }
 
 async function resolveAliasValue(
@@ -117,7 +133,9 @@ class DartVariableGenerator {
       this.dartCode += `  abstract final ${dartType} ${name};\n`;
     }
 
-    this.dartCode += `  List<Map<String, dynamic>> get map;\n`;
+    const { names, dartType } = await collectNamesAndType(variableIds);
+    this.dartCode += `  List<Map<String, ${dartType}>> get map;\n`;
+    this.dartCode += generateByNameLookup(names, dartType, "abstract");
     this.dartCode += "}\n\n";
   }
 
@@ -322,7 +340,8 @@ class DartVariableGenerator {
       this.dartCode += `final class ${modeClassName} {\n`;
       this.dartCode += `  const ${modeClassName}._();\n\n`;
 
-      const entries: string[] = [];
+      const names: string[] = [];
+      const dartTypes: string[] = [];
 
       for (const variableId of collection.variableIds) {
         const variable = await figma.variables.getVariableByIdAsync(variableId);
@@ -330,6 +349,7 @@ class DartVariableGenerator {
 
         const value = variable.valuesByMode[mode.modeId];
         const formattedName = formatVariableName(variable.name);
+        let fieldType: string;
 
         if (typeof value === "object" && value !== null && "type" in value) {
           const { value: aliasValue, type: aliasType } =
@@ -337,7 +357,7 @@ class DartVariableGenerator {
 
           const formattedValue = await formatValue(aliasValue, aliasType);
 
-          const dartType =
+          fieldType =
             aliasType === "COLOR"
               ? "Color"
               : aliasType === "FLOAT"
@@ -345,8 +365,7 @@ class DartVariableGenerator {
                 : "dynamic";
 
           this.commentField(variable, formattedValue, hasModes, mode);
-          this.dartCode += `  static const ${dartType} ${formattedName} = ${formattedValue};\n`;
-          entries.push(`{'${formattedName}': ${formattedName}}`);
+          this.dartCode += `  static const ${fieldType} ${formattedName} = ${formattedValue};\n`;
         } else if (
           typeof value === "object" &&
           value !== null &&
@@ -354,24 +373,28 @@ class DartVariableGenerator {
         ) {
           const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
           const colorCode = getColorCode(asColor);
+          fieldType = "Color";
           this.commentField(variable, colorCode, hasModes, mode);
           this.dartCode += `  static const Color ${formattedName} = ${colorCode};\n`;
-          entries.push(`{'${formattedName}': ${formattedName}}`);
         } else if (variable.resolvedType === "FLOAT") {
+          fieldType = "double";
           this.commentField(variable, value.toString(), hasModes, mode);
           this.dartCode += `  static const double ${formattedName} = ${value};\n`;
-          entries.push(`{'${formattedName}': ${formattedName}}`);
         } else {
+          fieldType = "dynamic";
           this.commentField(variable, value.toString(), hasModes, mode);
           this.dartCode += `  static const dynamic ${formattedName} = ${value};\n`;
-          entries.push(`{'${formattedName}': ${formattedName}}`);
         }
+
+        names.push(formattedName);
+        dartTypes.push(fieldType);
       }
 
-      // Generate map
-      this.dartCode += `\nstatic List<Map<String, dynamic>> get map => [\n    ${entries.join(
-        ",\n    ",
-      )}\n  ];\n`;
+      const dartType = commonDartType(dartTypes);
+      this.dartCode += `\nstatic List<Map<String, ${dartType}>> get map => [\n    ${names
+        .map((name) => `{'${name}': ${name}}`)
+        .join(",\n    ")}\n  ];\n`;
+      this.dartCode += generateByNameLookup(names, dartType, "static");
       this.dartCode += "}\n\n";
     }
   }
@@ -391,14 +414,15 @@ class DartVariableGenerator {
     collection: VariableCollection,
     variableIds: string[],
   ): Promise<void> {
-    this.dartCode += `  @override\n  List<Map<String, dynamic>> get map => [\n`;
+    const { names, dartType } = await collectNamesAndType(variableIds);
+    this.dartCode += `  @override\n  List<Map<String, ${dartType}>> get map => [\n`;
 
-    for (const variableId of variableIds) {
-      const { name } = await processVariable(variableId);
+    for (const name of names) {
       this.dartCode += `    {'${name}': ${name}},\n`;
     }
 
     this.dartCode += "  ];\n";
+    this.dartCode += generateByNameLookup(names, dartType, "override");
   }
 
   getDartCode(): string {
