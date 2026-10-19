@@ -28,22 +28,57 @@ function getColorCode(color: RGBA): string {
   )})`;
 }
 
+function dartTypeOf(resolvedType: string | undefined): string {
+  switch (resolvedType) {
+    case "COLOR":
+      return "Color";
+    case "FLOAT":
+      return "double";
+    case "STRING":
+      return "String";
+    case "BOOLEAN":
+      return "bool";
+    default:
+      return "dynamic";
+  }
+}
+
+/**
+ * Only design-token values (colors and sizes) go into `map` and `byName`;
+ * string and boolean variables such as a mode name stay plain fields.
+ */
+function isLookupType(dartType: string): boolean {
+  return dartType === "Color" || dartType === "double";
+}
+
+function dartStringLiteral(value: string): string {
+  return `'${value
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\$/g, "\\$")
+    .replace(/\n/g, "\\n")}'`;
+}
+
+/**
+ * The mode dialog lists only the first multi-mode collection's modes, so a
+ * collection none of whose modes were selected keeps all of its modes.
+ */
+function selectModes(
+  collection: VariableCollection,
+  selectedModeIds?: string[],
+): { modeId: string; name: string }[] {
+  const selected = collection.modes.filter(
+    (m) => (selectedModeIds ?? []).indexOf(m.modeId) !== -1,
+  );
+  return selected.length > 0 ? selected : collection.modes;
+}
+
 async function processVariable(variableId: string): Promise<VariableData> {
   const variable = await figma.variables.getVariableByIdAsync(variableId);
   const name = formatVariableName(variable?.name ?? "");
+  const dartType = dartTypeOf(variable?.resolvedType);
 
-  let variableType = "dynamic";
-  let dartType = "dynamic";
-
-  if (variable?.resolvedType === "COLOR") {
-    variableType = "Color";
-    dartType = "Color";
-  } else if (variable?.resolvedType === "FLOAT") {
-    variableType = "double";
-    dartType = "double";
-  }
-
-  return { variable, name, variableType, dartType };
+  return { variable, name, variableType: dartType, dartType };
 }
 
 async function collectNamesAndType(
@@ -53,7 +88,7 @@ async function collectNamesAndType(
   const dartTypes: string[] = [];
   for (const variableId of variableIds) {
     const { variable, name, dartType } = await processVariable(variableId);
-    if (!variable) continue;
+    if (!variable || !isLookupType(dartType)) continue;
     names.push(name);
     dartTypes.push(dartType);
   }
@@ -91,6 +126,10 @@ async function formatValue(value: any, type: VariableType): Promise<string> {
     const asColor = "a" in value ? (value as RGBA) : { ...value, a: 1 };
 
     return getColorCode(asColor);
+  }
+
+  if (type === "STRING" && typeof value === "string") {
+    return dartStringLiteral(value);
   }
 
   return `${value}`;
@@ -172,12 +211,7 @@ class DartVariableGenerator {
     this.dartCode += `  @override\n  Object get type => runtimeType;\n\n`;
 
     // Mode-specific instances
-    const modes =
-      selectedModeIds && selectedModeIds.length > 0
-        ? collection.modes.filter(
-            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
-          )
-        : collection.modes;
+    const modes = selectModes(collection, selectedModeIds);
     await this.generateModeInstances(className, modes, variableIds, true);
 
     // Map getter
@@ -231,6 +265,8 @@ class DartVariableGenerator {
         this.dartCode += `      ${name}: Color.lerp(${name}, other.${name}, t)!,\n`;
       } else if (variableType === "double") {
         this.dartCode += `      ${name}: lerpDouble(${name}, other.${name}, t)!,\n`;
+      } else if (variableType === "String" || variableType === "bool") {
+        this.dartCode += `      ${name}: t < 0.5 ? ${name} : other.${name},\n`;
       } else {
         this.dartCode += `      ${name}: other.${name} ?? this.${name},\n`;
       }
@@ -325,12 +361,7 @@ class DartVariableGenerator {
     collection: VariableCollection,
     selectedModeIds?: string[],
   ): Promise<void> {
-    const modes =
-      selectedModeIds && selectedModeIds.length > 0
-        ? collection.modes.filter(
-            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
-          )
-        : collection.modes;
+    const modes = selectModes(collection, selectedModeIds);
     const hasModes = collection.modes.length > 1;
 
     for (const mode of modes) {
@@ -357,12 +388,7 @@ class DartVariableGenerator {
 
           const formattedValue = await formatValue(aliasValue, aliasType);
 
-          fieldType =
-            aliasType === "COLOR"
-              ? "Color"
-              : aliasType === "FLOAT"
-                ? "double"
-                : "dynamic";
+          fieldType = dartTypeOf(aliasType);
 
           this.commentField(variable, formattedValue, hasModes, mode);
           this.dartCode += `  static const ${fieldType} ${formattedName} = ${formattedValue};\n`;
@@ -381,13 +407,19 @@ class DartVariableGenerator {
           this.commentField(variable, value.toString(), hasModes, mode);
           this.dartCode += `  static const double ${formattedName} = ${value};\n`;
         } else {
-          fieldType = "dynamic";
-          this.commentField(variable, value.toString(), hasModes, mode);
-          this.dartCode += `  static const dynamic ${formattedName} = ${value};\n`;
+          fieldType = dartTypeOf(variable.resolvedType);
+          const formattedValue = await formatValue(
+            value,
+            variable.resolvedType as VariableType,
+          );
+          this.commentField(variable, formattedValue, hasModes, mode);
+          this.dartCode += `  static const ${fieldType} ${formattedName} = ${formattedValue};\n`;
         }
 
-        names.push(formattedName);
-        dartTypes.push(fieldType);
+        if (isLookupType(fieldType)) {
+          names.push(formattedName);
+          dartTypes.push(fieldType);
+        }
       }
 
       const dartType = commonDartType(dartTypes);
