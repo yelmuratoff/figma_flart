@@ -234,6 +234,40 @@ export function getDartValue(variable: any, mode: any): string {
   return "null";
 }
 
+export type ByNameKind = "static" | "abstract" | "override" | "instance";
+
+export function nullableDartType(dartType: string): string {
+  return dartType === "dynamic" ? dartType : `${dartType}?`;
+}
+
+export function commonDartType(dartTypes: string[]): string {
+  const unique = dartTypes.filter((t, i) => dartTypes.indexOf(t) === i);
+  if (unique.length === 1) return unique[0];
+  return unique.indexOf("dynamic") !== -1 ? "dynamic" : "Object";
+}
+
+/**
+ * Emits a typed `byName` lookup as a Dart switch expression, returning null
+ * for an unknown name.
+ */
+export function generateByNameLookup(
+  names: string[],
+  dartType: string,
+  kind: ByNameKind
+): string {
+  const signature = `${nullableDartType(dartType)} byName(String name)`;
+  if (kind === "abstract") return `  ${signature};\n`;
+
+  const prefix =
+    kind === "static" ? "static " : kind === "override" ? "@override\n  " : "";
+  let code = `\n  ${prefix}${signature} => switch (name) {\n`;
+  for (const name of names) {
+    code += `    '${name}' => ${name},\n`;
+  }
+  code += "    _ => null,\n  };\n";
+  return code;
+}
+
 export function initialize() {
   const now = new Date();
   const formattedDate = now.toLocaleString("en-US");
