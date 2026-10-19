@@ -59,6 +59,20 @@ function dartStringLiteral(value: string): string {
     .replace(/\n/g, "\\n")}'`;
 }
 
+/**
+ * The mode dialog lists only the first multi-mode collection's modes, so a
+ * collection none of whose modes were selected keeps all of its modes.
+ */
+function selectModes(
+  collection: VariableCollection,
+  selectedModeIds?: string[],
+): { modeId: string; name: string }[] {
+  const selected = collection.modes.filter(
+    (m) => (selectedModeIds ?? []).indexOf(m.modeId) !== -1,
+  );
+  return selected.length > 0 ? selected : collection.modes;
+}
+
 async function processVariable(variableId: string): Promise<VariableData> {
   const variable = await figma.variables.getVariableByIdAsync(variableId);
   const name = formatVariableName(variable?.name ?? "");
@@ -197,12 +211,7 @@ class DartVariableGenerator {
     this.dartCode += `  @override\n  Object get type => runtimeType;\n\n`;
 
     // Mode-specific instances
-    const modes =
-      selectedModeIds && selectedModeIds.length > 0
-        ? collection.modes.filter(
-            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
-          )
-        : collection.modes;
+    const modes = selectModes(collection, selectedModeIds);
     await this.generateModeInstances(className, modes, variableIds, true);
 
     // Map getter
@@ -352,12 +361,7 @@ class DartVariableGenerator {
     collection: VariableCollection,
     selectedModeIds?: string[],
   ): Promise<void> {
-    const modes =
-      selectedModeIds && selectedModeIds.length > 0
-        ? collection.modes.filter(
-            (m) => selectedModeIds!.indexOf(m.modeId) !== -1,
-          )
-        : collection.modes;
+    const modes = selectModes(collection, selectedModeIds);
     const hasModes = collection.modes.length > 1;
 
     for (const mode of modes) {
