@@ -5,6 +5,7 @@ import {
   formatClassName,
   generateByNameLookup,
   commonDartType,
+  toDartIdentifier,
 } from "../utils";
 
 // Types for better code clarity
@@ -73,9 +74,23 @@ function selectModes(
   return selected.length > 0 ? selected : collection.modes;
 }
 
+const collectionPrefixes = new Map<string, string>();
+
+async function variableIdentifier(variable: Variable): Promise<string> {
+  let prefix = collectionPrefixes.get(variable.variableCollectionId);
+  if (prefix === undefined) {
+    const collection = await figma.variables.getVariableCollectionByIdAsync(
+      variable.variableCollectionId,
+    );
+    prefix = formatVariableName(collection?.name ?? "value") || "value";
+    collectionPrefixes.set(variable.variableCollectionId, prefix);
+  }
+  return toDartIdentifier(formatVariableName(variable.name), prefix);
+}
+
 async function processVariable(variableId: string): Promise<VariableData> {
   const variable = await figma.variables.getVariableByIdAsync(variableId);
-  const name = formatVariableName(variable?.name ?? "");
+  const name = variable ? await variableIdentifier(variable) : "";
   const dartType = dartTypeOf(variable?.resolvedType);
 
   return { variable, name, variableType: dartType, dartType };
@@ -379,7 +394,7 @@ class DartVariableGenerator {
         if (!variable) continue;
 
         const value = variable.valuesByMode[mode.modeId];
-        const formattedName = formatVariableName(variable.name);
+        const formattedName = await variableIdentifier(variable);
         let fieldType: string;
 
         if (typeof value === "object" && value !== null && "type" in value) {

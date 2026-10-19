@@ -234,6 +234,32 @@ export function getDartValue(variable: any, mode: any): string {
   return "null";
 }
 
+const DART_RESERVED_WORDS = [
+  "assert", "break", "case", "catch", "class", "const", "continue", "default",
+  "do", "else", "enum", "extends", "false", "final", "finally", "for", "if",
+  "in", "is", "new", "null", "rethrow", "return", "super", "switch", "this",
+  "throw", "true", "try", "var", "void", "while", "with",
+];
+
+const GENERATED_MEMBER_NAMES = [
+  "map", "byName", "type", "copyWith", "lerp", "hashCode", "runtimeType",
+  "toString", "noSuchMethod",
+];
+
+/**
+ * Makes a formatted token name usable as a Dart field. A name that starts with a
+ * digit, is a reserved word, or collides with a generated member gets the prefix:
+ * `1` in the Size collection becomes `size1`.
+ */
+export function toDartIdentifier(name: string, prefix: string): string {
+  const needsPrefix =
+    name === "" ||
+    /^[0-9]/.test(name) ||
+    DART_RESERVED_WORDS.indexOf(name) !== -1 ||
+    GENERATED_MEMBER_NAMES.indexOf(name) !== -1;
+  return needsPrefix ? `${prefix}${capitalize(name)}` : name;
+}
+
 export type ByNameKind = "static" | "abstract" | "override" | "instance";
 
 export function nullableDartType(dartType: string): string {
