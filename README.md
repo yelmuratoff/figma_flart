@@ -22,6 +22,20 @@ The process of translating text styles and colors from Figma to Flutter can lead
 
 Automating the conversion process eliminates these issues, making the design-to-code workflow more efficient, accurate, and consistent.
 
+## Command-line generator
+
+`cli/` holds `flart`, a Rust command-line version of the plugin's generators for files where you cannot run plugins, such as a Dev seat or view-only access. A read-only script collects the file's variables and styles through the Figma MCP server's `use_figma` tool, and `flart` turns that snapshot into the same Dart the plugin writes.
+
+```bash
+cargo install --path cli --locked
+
+flart collector --part collections        # script to run through use_figma
+flart snapshot assemble parts/*.json -o snapshot.json
+flart generate snapshot.json --out lib/theme/generated --theme-extensions --font-name
+```
+
+`flart --help` lists every option, and `--json` switches any command to machine-readable output. The output matches plugin 1.1.1 except that it has no `// Last updated` line, aliases into multi-mode collections resolve in the collection's default mode, and gradient stops keep their alpha. `flart` does not run `dart format`; run it yourself if your project formats generated files. [`cli/docs/snapshot-schema.md`](cli/docs/snapshot-schema.md) describes the snapshot, and [`cli/oracle/README.md`](cli/oracle/README.md) explains how the tests compare against the plugin.
+
 ## Getting Started
 
 1.  **Install dependencies:**
