@@ -7,3 +7,13 @@ node_modules
 out/
 dist/
 *.js
+!cli/collector/*.js
+!cli/oracle/*.js
+
+# Rust
+/cli/target/
+/cli/tests/fixtures/ah_ds/
+/cli/tests/golden/ah_ds/
+
+.agent-work/
+.DS_Store
