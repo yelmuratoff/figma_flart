@@ -20,7 +20,7 @@ The resolver lists the single-mode files as sets and each multi-mode collection 
 
 | Figma | DTCG |
 | --- | --- |
-| COLOR variable | `color`: `srgb` components and alpha as Figma stores them, plus `hex` |
+| COLOR variable | `color`: `srgb` components and alpha rounded to four decimals, plus `hex` |
 | FLOAT variable | `dimension` in `px` |
 | Alias | a reference such as `{Palette.gray.900}`, resolved by the tool for the selected modes |
 | Solid paint style | `color`; a reference when the paint is bound to a variable and has no opacity of its own |
@@ -44,3 +44,21 @@ A gradient's angle and a text style's decoration are not part of the DTCG values
 ## Checking the output
 
 The output validates against the published JSON Schemas at `https://www.designtokens.org/schemas/2025.10/format.json` and `.../resolver.json`. The schemas do not check that references point at existing tokens; `tests/export.rs` does that for the sample.
+
+## Building with token tools
+
+Tried on the sample and on a 168-token design system with five themes, November 2026:
+
+- Terrazzo 2.10 (`@terrazzo/cli` with `@terrazzo/plugin-css`) reads `tokens.resolver.json` directly. One `permutations` entry per theme gives one CSS block per mode:
+
+  ```js
+  css({
+    permutations: ['light', 'dark'].map((theme) => ({
+      input: { Theme: theme },
+      prepare: (contents) => `[data-theme="${theme}"] {\n${contents}\n}`,
+    })),
+  })
+  ```
+
+  Its `core/consistent-naming` lint rule warns on every name Figma capitalizes; turn it off in `lint.rules`.
+- Style Dictionary 5.8 does not read the resolver. List the single-mode files plus one context file per multi-mode collection in `source` and build once per combination. With `usesDtcg: true` every combination resolves, but the built-in `ios-swift` and `compose` transform groups print `[object Object]` for typography, shadow, and gradient tokens, and the `css` group does so for gradients. Those types need custom transforms.
