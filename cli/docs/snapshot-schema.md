@@ -53,6 +53,10 @@ Variables are split by collection because `use_figma` returns one value per call
 
 Besides the Plugin API properties, collections and variables keep `id`, `key`, `remote`, and, for collections, `defaultModeId` and `modes` (`modeId`, `name`). Code generation needs `defaultModeId`: an alias into a collection with several modes resolves in that collection's default mode, as Figma resolves it for a node with no explicit mode.
 
+## Size
+
+An agent reads every part from `use_figma` and writes it to a file, so the cost of a run grows with the parts. A file with 101 variables in two collections (five modes and two), 52 library variables, and 20 styles came to 82 KB of parts, most of it in the five-mode collection. Every variable repeats its `key` and `variableCollectionId`, and every mode repeats the full alias id. Dropping the first two and interning alias ids would roughly halve that, at the price of `schemaVersion: 2`. That change is worth making once a part fails to come back whole from `use_figma` (the 41 KB part above returned intact), or once regeneration runs often enough for the cost to matter.
+
 ## What `assemble` and `check` reject
 
 | Exit | Problem |
