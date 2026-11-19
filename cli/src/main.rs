@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use flart::codegen::{Kind, Options};
+use flart::export::Export;
 use flart::generate::{FileOutcome, Request, Status};
 use flart::{Error, PartKind, Report, snapshot};
 use serde_json::json;
@@ -12,7 +13,7 @@ use serde_json::json;
 #[command(
     name = "flart",
     version,
-    about = "Generate Dart design tokens from read-only Figma snapshots."
+    about = "Generate Dart or DTCG design tokens from read-only Figma snapshots."
 )]
 struct Cli {
     /// Emit a versioned JSON envelope instead of text.
@@ -59,6 +60,17 @@ enum Command {
         /// Mode names to generate, as the plugin's mode dialog selected them.
         #[arg(long, value_delimiter = ',')]
         modes: Vec<String>,
+        /// Report what would change without writing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Export a snapshot as DTCG 2025.10 token files plus tokens.resolver.json.
+    Export {
+        /// Snapshot file written by `flart snapshot assemble`.
+        snapshot: PathBuf,
+        /// Directory to write tokens/ and tokens.resolver.json into.
+        #[arg(long)]
+        out: PathBuf,
         /// Report what would change without writing.
         #[arg(long)]
         dry_run: bool,
@@ -162,7 +174,39 @@ fn run(cli: Cli) -> anyhow::Result<String> {
             let files = flart::generate::generate(&loaded, &request, &out, dry_run)?;
             Ok(format_files(&files, dry_run, cli.json))
         }
+        Command::Export {
+            snapshot: path,
+            out,
+            dry_run,
+        } => {
+            let loaded = snapshot::load(&path)?;
+            snapshot::check(&loaded)?;
+            let export = flart::export::export(&loaded, &out, dry_run)?;
+            Ok(format_export(&export, dry_run, cli.json))
+        }
     }
+}
+
+fn format_export(export: &Export, dry_run: bool, json: bool) -> String {
+    if json {
+        let data = json!({ "dryRun": dry_run, "files": export.files, "dropped": export.dropped });
+        return json!({ "apiVersion": 1, "type": "export", "data": data }).to_string();
+    }
+    let files = export.files.iter().map(|file| {
+        let verb = match (file.status, dry_run) {
+            (Status::Created, false) => "created",
+            (Status::Created, true) => "would create",
+            (Status::Changed, false) => "changed",
+            (Status::Changed, true) => "would change",
+            (Status::Unchanged | Status::Skipped, _) => "unchanged",
+        };
+        format!("{verb} {}", file.path.display())
+    });
+    let dropped = export
+        .dropped
+        .iter()
+        .map(|item| format!("dropped {}: {}", item.source, item.reason));
+    files.chain(dropped).collect::<Vec<_>>().join("\n")
 }
 
 fn format_files(files: &[FileOutcome], dry_run: bool, json: bool) -> String {

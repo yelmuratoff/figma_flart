@@ -21,9 +21,7 @@ pub enum Error {
         #[source]
         source: std::io::Error,
     },
-    #[error(
-        "{scope}: {first:?} and {second:?} both become the Dart name {name}; rename one of them in Figma"
-    )]
+    #[error("{scope}: {first:?} and {second:?} both become {name}; rename one of them in Figma")]
     DuplicateIdentifier {
         scope: String,
         name: String,

@@ -1,8 +1,9 @@
-//! Generate Dart design tokens from read-only Figma snapshots.
+//! Generate Dart or DTCG design tokens from read-only Figma snapshots.
 
 pub mod canonical;
 pub mod codegen;
 mod error;
+pub mod export;
 pub mod generate;
 pub mod snapshot;
 

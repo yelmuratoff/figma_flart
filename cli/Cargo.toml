@@ -3,7 +3,7 @@ name = "flart"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-description = "Generate Dart design tokens from read-only Figma snapshots."
+description = "Generate Dart or DTCG design tokens from read-only Figma snapshots."
 license = "MIT"
 publish = false
 

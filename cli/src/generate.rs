@@ -119,7 +119,7 @@ fn generate_kind(snapshot: &Snapshot, request: &Request, kind: Kind) -> Result<G
     })
 }
 
-fn write_if_changed(path: &Path, code: &str, dry_run: bool) -> Result<Status, Error> {
+pub(crate) fn write_if_changed(path: &Path, code: &str, dry_run: bool) -> Result<Status, Error> {
     let status = match std::fs::read_to_string(path) {
         Ok(existing) if existing == code => return Ok(Status::Unchanged),
         Ok(_) => Status::Changed,
