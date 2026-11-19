@@ -711,8 +711,12 @@ fn color(rgba: Rgba, opacity: f64) -> Value {
         .collect();
     json!({
         "colorSpace": "srgb",
-        "components": [number(rgba.r), number(rgba.g), number(rgba.b)],
-        "alpha": number(alpha),
+        "components": [
+            number(derived(rgba.r)),
+            number(derived(rgba.g)),
+            number(derived(rgba.b)),
+        ],
+        "alpha": number(derived(alpha)),
         "hex": format!("#{hex}"),
     })
 }
@@ -730,8 +734,9 @@ fn number(value: f64) -> Value {
     }
 }
 
-/// Values flart computes (ratios, percent of a font size) carry float noise
-/// such as `-1.9200000000000002`; four decimals keep them readable.
+/// Values flart computes (ratios, percent of a font size) and Figma's float32
+/// color channels carry float noise such as `-1.9200000000000002` or
+/// `0.699999988079071`; four decimals keep them readable.
 fn derived(value: f64) -> f64 {
     (value * 10_000.0).round() / 10_000.0
 }
@@ -768,5 +773,21 @@ mod tests {
         assert_eq!(value["hex"], "#ff8000");
         assert_eq!(value["alpha"], json!(0.25));
         assert_eq!(value["components"], json!([1, 0.5, 0]));
+    }
+
+    #[test]
+    fn color_drops_float32_noise() {
+        let value = color(
+            Rgba {
+                r: f64::from(40.0_f32 / 255.0),
+                g: 0.0,
+                b: 0.0,
+                a: Some(f64::from(0.7_f32)),
+            },
+            1.0,
+        );
+        assert_eq!(value["alpha"], json!(0.7));
+        assert_eq!(value["components"][0], json!(0.1569));
+        assert_eq!(value["hex"], "#280000");
     }
 }

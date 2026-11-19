@@ -206,7 +206,7 @@ fn colors_keep_aliases_and_alpha() {
         &json!({
             "colorSpace": "srgb",
             "components": [1, 1, 1],
-            "alpha": 0.800000011920929,
+            "alpha": 0.8,
             "hex": "#ffffff",
         })
     );
